@@ -30,10 +30,13 @@ export function createInitialMensHealthState(): MensHealthState {
     challengeStartedAt: null,
     currentNoFapStreak: 0,
     longestNoFapStreak: 0,
+    currentNoPornStreak: 0,
+    longestNoPornStreak: 0,
     totalSuccessfulDays: 0,
     pelvicFloorCurrentStreak: 0,
     pelvicFloorLongestStreak: 0,
     lastNoFapCheckDate: null,
+    lastNoPornCheckDate: null,
     lastPelvicFloorDate: null,
   };
 }
@@ -43,7 +46,9 @@ export function getTodayMensHealthLog(logs: MensHealthLog[], today: string = for
     logs.find((entry) => entry.date === today) ?? {
       date: today,
       noFapStatus: 'none',
+      noPornStatus: 'none',
       noFapNote: null,
+      noPornNote: null,
       sleepQuality: null,
       waterLiters: null,
       exerciseDone: false,
@@ -58,6 +63,61 @@ export function getTodayMensHealthLog(logs: MensHealthLog[], today: string = for
 
 export function upsertMensHealthLog(logs: MensHealthLog[], entry: MensHealthLog): MensHealthLog[] {
   return [...logs.filter((item) => item.date !== entry.date), entry].sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export function updateNoFapAndNoPornState(
+  state: MensHealthState,
+  logs: MensHealthLog[],
+  today: string = formatLocalDate()
+): MensHealthState {
+  const sortedAsc = [...logs].sort((a, b) => a.date.localeCompare(b.date));
+
+  let currentNoFapStreak = 0;
+  let longestNoFapStreak = 0;
+  let currentNoPornStreak = 0;
+  let longestNoPornStreak = 0;
+
+  for (const log of sortedAsc) {
+    if (log.noFapStatus === 'clean') {
+      currentNoFapStreak += 1;
+      longestNoFapStreak = Math.max(longestNoFapStreak, currentNoFapStreak);
+    } else if (log.noFapStatus === 'relapse') {
+      currentNoFapStreak = 0;
+    }
+
+    if (log.noPornStatus === 'clean') {
+      currentNoPornStreak += 1;
+      longestNoPornStreak = Math.max(longestNoPornStreak, currentNoPornStreak);
+    } else if (log.noPornStatus === 'relapse') {
+      currentNoPornStreak = 0;
+    }
+  }
+
+  const todayLog = getTodayMensHealthLog(logs, today);
+
+  return {
+    ...state,
+    challengeStartedAt: state.challengeStartedAt ?? today,
+    currentNoFapStreak,
+    longestNoFapStreak: Math.max(state.longestNoFapStreak, longestNoFapStreak),
+    currentNoPornStreak,
+    longestNoPornStreak: Math.max(state.longestNoPornStreak, longestNoPornStreak),
+    totalSuccessfulDays: logs.filter((log) => log.noFapStatus === 'clean' || log.noPornStatus === 'clean').length,
+    lastNoFapCheckDate: todayLog.noFapStatus !== 'none' ? today : state.lastNoFapCheckDate,
+    lastNoPornCheckDate: todayLog.noPornStatus !== 'none' ? today : state.lastNoPornCheckDate,
+  };
+}
+
+export function buildNoFapCalendar(logs: MensHealthLog[], today: string = formatLocalDate(), days: number = 42) {
+  return Array.from({ length: days }, (_, index) => {
+    const date = shiftLocalDate(today, -(days - 1 - index));
+    const entry = logs.find((item) => item.date === date);
+    return {
+      date,
+      noFapStatus: entry?.noFapStatus ?? 'none',
+      noPornStatus: entry?.noPornStatus ?? 'none',
+    };
+  });
 }
 
 export function getLifestyleQuestsForToday(today: string = formatLocalDate()): LifestyleQuestTemplate[] {

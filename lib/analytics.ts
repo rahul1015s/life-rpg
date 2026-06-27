@@ -5,6 +5,7 @@ import {
   sortHairLogDescending,
 } from './haircareEngine';
 import type {
+  ActivityGridCell,
   DailyHistoryGroup,
   HairLogEntry,
   HistoryEntry,
@@ -130,6 +131,40 @@ export function buildXPTrackingSummary(
       .reduce((total, entry) => total + entry.xpEarned, 0),
     allTime: progress.totalXP,
   };
+}
+
+export function buildRecentActivityGrid(
+  history: HistoryEntry[],
+  today: string = getLocalDateString(),
+  days: number = 35
+): ActivityGridCell[] {
+  const byDate = new Map(history.map((entry) => [entry.date, entry]));
+  const cells: ActivityGridCell[] = [];
+
+  for (let offset = days - 1; offset >= 0; offset -= 1) {
+    const date = shiftDate(today, -offset);
+    const entry = byDate.get(date);
+    const xp = entry?.xpEarned ?? 0;
+    const questsCompleted = entry?.questsCompleted ?? 0;
+
+    let intensity: ActivityGridCell['intensity'] = 'none';
+    if (xp >= 60 || questsCompleted >= 5) {
+      intensity = 'high';
+    } else if (xp >= 35 || questsCompleted >= 3) {
+      intensity = 'medium';
+    } else if (xp > 0 || questsCompleted > 0) {
+      intensity = 'low';
+    }
+
+    cells.push({
+      date,
+      xp,
+      questsCompleted,
+      intensity,
+    });
+  }
+
+  return cells;
 }
 
 export function getActiveDaysThisMonth(

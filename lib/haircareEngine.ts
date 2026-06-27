@@ -111,18 +111,26 @@ export function getThirtyDayGrid(
   return days;
 }
 
+export async function saveImageToLocalDirectory(
+  sourceUri: string,
+  directoryName: string,
+  fileNamePrefix: string
+): Promise<string> {
+  const imageDirectory = new Directory(Paths.document, directoryName);
+  if (!imageDirectory.exists) {
+    imageDirectory.create({ idempotent: true, intermediates: true });
+  }
+
+  const extension = sourceUri.split('.').pop()?.split('?')[0] ?? 'jpg';
+  const destination = new File(imageDirectory, `${fileNamePrefix}-${Date.now()}.${extension}`);
+  const source = new File(sourceUri);
+  await source.copy(destination, { overwrite: true });
+  return destination.uri;
+}
+
 export async function saveHairPhotoToLocalDirectory(
   sourceUri: string,
   date: string
 ): Promise<string> {
-  const hairlogDirectory = new Directory(Paths.document, 'hairlog');
-  if (!hairlogDirectory.exists) {
-    hairlogDirectory.create({ idempotent: true, intermediates: true });
-  }
-
-  const extension = sourceUri.split('.').pop()?.split('?')[0] ?? 'jpg';
-  const destination = new File(hairlogDirectory, `${date}-${Date.now()}.${extension}`);
-  const source = new File(sourceUri);
-  await source.copy(destination, { overwrite: true });
-  return destination.uri;
+  return saveImageToLocalDirectory(sourceUri, 'hairlog', date);
 }

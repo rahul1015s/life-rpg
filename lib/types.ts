@@ -236,6 +236,13 @@ export interface XPTrackingSummary {
   allTime: number;
 }
 
+export interface ActivityGridCell {
+  date: string;
+  xp: number;
+  questsCompleted: number;
+  intensity: 'none' | 'low' | 'medium' | 'high';
+}
+
 export interface AchievementUnlockResult {
   achievement: AchievementTemplate;
   unlockedAt: string;
@@ -263,17 +270,22 @@ export interface MensHealthState {
   challengeStartedAt: string | null;
   currentNoFapStreak: number;
   longestNoFapStreak: number;
+  currentNoPornStreak: number;
+  longestNoPornStreak: number;
   totalSuccessfulDays: number;
   pelvicFloorCurrentStreak: number;
   pelvicFloorLongestStreak: number;
   lastNoFapCheckDate: string | null;
+  lastNoPornCheckDate: string | null;
   lastPelvicFloorDate: string | null;
 }
 
 export interface MensHealthLog {
   date: string;
   noFapStatus: 'none' | 'clean' | 'relapse';
+  noPornStatus: 'none' | 'clean' | 'relapse';
   noFapNote: string | null;
+  noPornNote: string | null;
   sleepQuality: number | null;
   waterLiters: number | null;
   exerciseDone: boolean;
@@ -302,4 +314,175 @@ export interface MensHealthSummary {
   monthlyConsistency: number;
   weeklyPelvicFloorDays: number;
   monthlyLifestyleCompletions: number;
+}
+
+export interface WeeklyReview {
+  weekStartDate: string;
+  wins: string;
+  misses: string;
+  lessonsLearned: string;
+  nextWeekFocus: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HabitCalendarCell {
+  date: string;
+  completed: boolean;
+  intensity: 'none' | 'light' | 'strong';
+  questsCompleted: number;
+  xp: number;
+}
+
+export interface DailyCheckIn {
+  id: string;
+  date: string;
+  period: 'morning' | 'night';
+  mood: number;
+  energy: number;
+  sleep: number;
+  confidence: number;
+  focus: number;
+  note: string;
+  createdAt: string;
+}
+
+export interface ReflectionJournalEntry {
+  id: string;
+  date: string;
+  title: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface FocusSession {
+  id: string;
+  date: string;
+  category: QuestCategory | 'deep-work';
+  label: string;
+  targetMinutes: number;
+  completedMinutes: number;
+  completed: boolean;
+  rewardXP: number;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface MilestoneVision {
+  id: string;
+  title: string;
+  timeframeDays: 30 | 90 | 365;
+  targetDate: string;
+  vision: string;
+  progressPercent: number;
+  status: 'active' | 'completed';
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface DopamineLog {
+  date: string;
+  socialMediaMinutes: number;
+  gamingMinutes: number;
+  shortVideoMinutes: number;
+  junkFood: boolean;
+  pornUsed: boolean;
+  urgeLevel: number;
+  note: string;
+}
+
+export interface SleepRecoveryEntry {
+  date: string;
+  bedTime: string;
+  wakeTime: string;
+  hoursSlept: number;
+  sleepQuality: number;
+  screenCutoffTime: string;
+  lateCaffeine: boolean;
+  note: string;
+}
+
+export interface WorkoutEntry {
+  id: string;
+  date: string;
+  workoutType: 'strength' | 'cardio' | 'mobility' | 'sports';
+  title: string;
+  durationMinutes: number;
+  sets: number;
+  reps: number;
+  weightKg: number;
+  effort: number;
+  note: string;
+  imageUri: string | null;
+  createdAt: string;
+}
+
+export interface RelapseReflection {
+  id: string;
+  date: string;
+  trigger: string;
+  timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
+  urgeLevel: number;
+  actionTaken: string;
+  recoveryPlan: string;
+  note: string;
+  createdAt: string;
+}
+
+export interface RecoveryQuestSuggestion {
+  id: string;
+  title: string;
+  description: string;
+  category: QuestCategory;
+  reason: string;
+  recommendedXP: number;
+}
+
+export interface SmartQuestSuggestion {
+  questId: string;
+  title: string;
+  category: QuestCategory;
+  reason: string;
+  recommendedTime: string;
+  xp: number;
+}
+
+export interface CategoryInsight {
+  label: string;
+  completed: number;
+  xp: number;
+  trend: 'low' | 'medium' | 'high';
+}
+
+export interface BalanceRadarPoint {
+  label: string;
+  value: number;
+}
+
+export interface AppExportData {
+  version: 1;
+  exportedAt: string;
+  payload: {
+    profile: PlayerProfile | null;
+    progress: PlayerProgress | null;
+    dailyQuests: DailyQuest[];
+    history: HistoryEntry[];
+    hairLog: HairLogEntry[];
+    completionLog: QuestCompletionLogEntry[];
+    questRotation: QuestRotationEntry[];
+    achievements: AchievementUnlock[];
+    customQuests: CustomQuest[];
+    goals: PersonalGoal[];
+    mensHealthState: MensHealthState | null;
+    mensHealthLogs: MensHealthLog[];
+    weeklyReviews: WeeklyReview[];
+    dailyCheckIns: DailyCheckIn[];
+    journalEntries: ReflectionJournalEntry[];
+    focusSessions: FocusSession[];
+    milestones: MilestoneVision[];
+    dopamineLogs: DopamineLog[];
+    sleepEntries: SleepRecoveryEntry[];
+    workoutEntries: WorkoutEntry[];
+    relapseReflections: RelapseReflection[];
+  };
 }

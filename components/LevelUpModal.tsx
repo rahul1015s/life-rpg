@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react';
-import { Animated, Modal, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-import { theme } from '../constants/theme';
 import type { LevelUpSummary, StatKey } from '../lib/types';
-import { PrimaryButton } from './PrimaryButton';
+import { colors, spacing, borders } from '../theme/tokens';
+import { fontFamily, typeScale } from '../theme/typography';
+import { RankSeal } from './ui/RankSeal';
 
 interface LevelUpModalProps {
   visible: boolean;
@@ -13,8 +14,8 @@ interface LevelUpModalProps {
 }
 
 export function LevelUpModal({ visible, summary, onDismiss }: LevelUpModalProps) {
-  const scale = useRef(new Animated.Value(0.9)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
+  const [scale] = useState(() => new Animated.Value(0.9));
+  const [opacity] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (!visible) {
@@ -28,13 +29,12 @@ export function LevelUpModal({ visible, summary, onDismiss }: LevelUpModalProps)
     Animated.parallel([
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 220,
+        duration: 180,
         useNativeDriver: true,
       }),
-      Animated.spring(scale, {
+      Animated.timing(scale, {
         toValue: 1,
-        friction: 7,
-        tension: 90,
+        duration: 100,
         useNativeDriver: true,
       }),
     ]).start();
@@ -50,24 +50,43 @@ export function LevelUpModal({ visible, summary, onDismiss }: LevelUpModalProps)
     <Modal visible={visible} transparent animationType="none" onRequestClose={onDismiss}>
       <View style={styles.backdrop}>
         <Animated.View style={[styles.card, { opacity, transform: [{ scale }] }]}>
-          <Text style={styles.kicker}>LEVEL ASCENSION</Text>
-          <Text style={styles.level}>
-            Level {summary.previousLevel} {'->'} Level {summary.newLevel}
+          <Text style={styles.kicker}>SYSTEM NOTICE</Text>
+          <Text style={styles.title}>LEVEL UP</Text>
+
+          <View style={styles.jumpRow}>
+            <RankSeal rank={summary.previousRank} size="lg" />
+            <Text style={styles.arrow}>{'->'}</Text>
+            <RankSeal rank={summary.currentRank} size="lg" />
+          </View>
+
+          <Text style={styles.levels}>
+            LV {summary.previousLevel} {'->'} LV {summary.newLevel}
           </Text>
           <Text style={styles.body}>
             {summary.rankChanged
               ? `Rank advanced from ${summary.previousRank} to ${summary.currentRank}.`
               : `Rank remains ${summary.currentRank}.`}
           </Text>
-          <View style={styles.statCard}>
-            <Text style={styles.statTitle}>Stat Gains</Text>
-            <Text style={styles.statBody}>
-              {statGainEntries.length > 0
-                ? statGainEntries.map(([key, value]) => `${key} +${value}`).join(' • ')
-                : 'No additional stat gains recorded.'}
-            </Text>
+
+          <View style={styles.gains}>
+            {statGainEntries.length > 0 ? (
+              statGainEntries.map(([key, value]) => (
+                <View key={key} style={styles.gainChip}>
+                  <Text style={styles.gainText}>
+                    {key.toUpperCase()} +{value}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <View style={styles.gainChip}>
+                <Text style={styles.gainText}>SYSTEM PROGRESS RECORDED</Text>
+              </View>
+            )}
           </View>
-          <PrimaryButton label="Continue" onPress={onDismiss} />
+
+          <Pressable style={styles.button} onPress={onDismiss}>
+            <Text style={styles.buttonText}>CONTINUE</Text>
+          </Pressable>
         </Animated.View>
       </View>
     </Modal>
@@ -79,56 +98,89 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(11, 7, 16, 0.88)',
-    padding: theme.spacing.lg,
-    zIndex: 2,
+    backgroundColor: 'rgba(10, 9, 8, 0.92)',
+    padding: spacing.lg,
   },
   card: {
     width: '100%',
     maxWidth: 390,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.accent,
-    padding: theme.spacing.xl,
-    gap: theme.spacing.md,
-    shadowColor: theme.colors.accentGlow,
-    shadowOpacity: 0.25,
-    shadowRadius: 22,
+    backgroundColor: colors.ink,
+    borderWidth: borders.panel,
+    borderColor: colors.ink,
+    padding: spacing.xl,
+    gap: spacing.md,
   },
   kicker: {
-    color: theme.colors.accentGlow,
-    fontSize: theme.font.sm,
-    fontWeight: '800',
-    letterSpacing: 1.2,
+    color: colors.parchmentDim,
+    fontFamily: fontFamily.mono,
+    fontSize: typeScale.sm,
     textAlign: 'center',
+    letterSpacing: 1,
   },
-  level: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.font.xl,
-    fontWeight: '900',
+  title: {
+    color: colors.parchment,
+    fontFamily: fontFamily.display,
+    fontSize: typeScale.xxl,
+    textAlign: 'center',
+    textShadowColor: colors.sealRedDim,
+    textShadowOffset: { width: 3, height: 3 },
+    textShadowRadius: 0,
+  },
+  jumpRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.lg,
+    marginVertical: spacing.sm,
+  },
+  arrow: {
+    color: colors.gold,
+    fontFamily: fontFamily.display,
+    fontSize: typeScale.xl,
+  },
+  levels: {
+    color: colors.gold,
+    fontFamily: fontFamily.display,
+    fontSize: typeScale.lg,
     textAlign: 'center',
   },
   body: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.md,
+    color: colors.parchment,
+    fontFamily: fontFamily.serif,
+    fontSize: typeScale.md,
     lineHeight: 22,
     textAlign: 'center',
   },
-  statCard: {
-    backgroundColor: theme.colors.surfaceAlt,
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.md,
-    gap: theme.spacing.xs,
+  gains: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.sm,
   },
-  statTitle: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.font.md,
-    fontWeight: '800',
+  gainChip: {
+    backgroundColor: colors.screentone,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
-  statBody: {
-    color: theme.colors.accentGlow,
-    fontSize: theme.font.sm,
-    lineHeight: 18,
+  gainText: {
+    color: colors.gold,
+    fontFamily: fontFamily.mono,
+    fontSize: typeScale.sm,
+  },
+  button: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.sealRed,
+    borderWidth: borders.panel,
+    borderColor: colors.ink,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: colors.ink,
+    fontFamily: fontFamily.display,
+    fontSize: typeScale.md,
+    letterSpacing: 1.2,
   },
 });

@@ -29,7 +29,8 @@ export function createInitialProgress(): PlayerProgress {
 }
 
 export function getNextLevelXP(level: number): number {
-  return level * 100;
+  const step = Math.max(level - 1, 0);
+  return Math.round(500 + step * 175 + step * step * 25);
 }
 
 export function getRankForLevel(level: number): RankName {

@@ -36,7 +36,14 @@
           }
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Life RPG to access your gallery so you can save hair and workout progress photos.",
+          "cameraPermission": "Allow Life RPG to use your camera so you can capture hair and workout progress photos."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

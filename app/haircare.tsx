@@ -100,20 +100,54 @@ export default function HaircareScreen() {
   }
 
   async function handleLogPhoto() {
+    Alert.alert('Progress Photo', 'Choose how you want to add your hair progress photo.', [
+      {
+        text: 'Camera',
+        onPress: () => {
+          void pickPhoto('camera');
+        },
+      },
+      {
+        text: 'Gallery',
+        onPress: () => {
+          void pickPhoto('gallery');
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+
+  async function pickPhoto(source: 'camera' | 'gallery') {
     setSavingPhoto(true);
 
     try {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      const permission =
+        source === 'camera'
+          ? await ImagePicker.requestCameraPermissionsAsync()
+          : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
       if (!permission.granted) {
-        Alert.alert('Camera permission needed', 'Camera access is required to log a progress photo.');
+        Alert.alert(
+          source === 'camera' ? 'Camera permission needed' : 'Gallery permission needed',
+          source === 'camera'
+            ? 'Camera access is required to log a progress photo.'
+            : 'Photo library access is required to pick a progress photo.'
+        );
         return;
       }
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        quality: 0.9,
-        allowsEditing: false,
-      });
+      const result =
+        source === 'camera'
+          ? await ImagePicker.launchCameraAsync({
+              mediaTypes: ['images'],
+              quality: 0.9,
+              allowsEditing: false,
+            })
+          : await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ['images'],
+              quality: 0.9,
+              allowsEditing: false,
+            });
 
       if (result.canceled || !result.assets[0]) {
         return;
@@ -174,7 +208,7 @@ export default function HaircareScreen() {
       </View>
 
       <View style={styles.section}>
-        <PrimaryButton label="Log Photo" onPress={handleLogPhoto} loading={savingPhoto} />
+        <PrimaryButton label="Add Camera or Gallery Photo" onPress={handleLogPhoto} loading={savingPhoto} />
         <Text style={styles.note}>
           Minoxidil results typically take 3–6+ months of consistent twice-daily use, and an initial
           shedding phase is normal. This is general informational text only, not medical advice.

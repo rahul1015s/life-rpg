@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { theme } from '../constants/theme';
@@ -14,7 +14,7 @@ interface QuestCardProps {
 }
 
 export function QuestCard({ quest, onComplete, onOpenDetails, loading = false }: QuestCardProps) {
-  const rewardAnimation = useRef(new Animated.Value(0)).current;
+  const [rewardAnimation] = useState(() => new Animated.Value(0));
   const didAnimateRef = useRef(quest.completed);
 
   useEffect(() => {

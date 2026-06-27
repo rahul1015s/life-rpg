@@ -1,37 +1,36 @@
-import type { StatKey } from '../lib/types';
+import type { QuestCategory, RankName, StatKey } from '../lib/types';
+import { borders, colors, spacing } from '../theme/tokens';
+import { fontFamily, typeScale } from '../theme/typography';
 
 export const theme = {
   colors: {
-    background: '#0B0710',
-    surface: '#15101F',
-    surfaceAlt: '#1E1730',
-    border: '#2D2440',
-    primary: '#7C3AED',
-    accent: '#FFB800',
-    accentGlow: '#FFD966',
-    success: '#22C55E',
-    danger: '#EF4444',
-    textPrimary: '#F5F2FA',
-    textMuted: '#9B8FB5',
+    background: colors.ink,
+    surface: colors.screentone,
+    surfaceAlt: colors.inkSoft,
+    border: colors.ink,
+    primary: colors.indigo,
+    accent: colors.gold,
+    accentGlow: colors.parchment,
+    success: colors.sealRed,
+    danger: colors.sealRed,
+    textPrimary: colors.parchment,
+    textMuted: colors.parchmentDim,
+    ...colors,
   },
-  spacing: {
-    xs: 4,
-    sm: 8,
-    md: 16,
-    lg: 24,
-    xl: 32,
-  },
+  spacing,
   radius: {
-    sm: 8,
-    md: 14,
-    lg: 22,
+    sm: 0,
+    md: 0,
+    lg: 0,
   },
   font: {
-    sm: 12,
-    md: 15,
-    lg: 20,
-    xl: 28,
+    sm: typeScale.sm,
+    md: typeScale.md,
+    lg: typeScale.lg,
+    xl: typeScale.xl,
   },
+  family: fontFamily,
+  borders,
 } as const;
 
 export const statOrder: StatKey[] = [
@@ -48,31 +47,40 @@ export const statOrder: StatKey[] = [
 ];
 
 export const statMeta: Record<StatKey, { label: string; icon: string }> = {
-  strength: { label: 'Strength', icon: '⚔️' },
-  stamina: { label: 'Stamina', icon: '🏃' },
-  focus: { label: 'Focus', icon: '🎯' },
-  discipline: { label: 'Discipline', icon: '🛡️' },
-  charisma: { label: 'Charisma', icon: '✨' },
-  confidence: { label: 'Confidence', icon: '👑' },
-  creativity: { label: 'Creativity', icon: '✍️' },
-  appearance: { label: 'Appearance', icon: '🪞' },
-  communication: { label: 'Communication', icon: '🗣️' },
-  style: { label: 'Style', icon: '🧥' },
+  strength: { label: 'Strength', icon: 'STR' },
+  stamina: { label: 'Stamina', icon: 'STA' },
+  focus: { label: 'Focus', icon: 'FOC' },
+  discipline: { label: 'Discipline', icon: 'DIS' },
+  charisma: { label: 'Charisma', icon: 'CHA' },
+  confidence: { label: 'Confidence', icon: 'CON' },
+  creativity: { label: 'Creativity', icon: 'CRE' },
+  appearance: { label: 'Appearance', icon: 'APP' },
+  communication: { label: 'Communication', icon: 'COM' },
+  style: { label: 'Style', icon: 'STY' },
 };
 
-export const categoryMeta = {
-  fitness: { label: 'Fitness', icon: '💪', color: '#FFB800' },
-  study: { label: 'Study', icon: '📘', color: '#7C3AED' },
-  coding: { label: 'Coding', icon: '💻', color: '#22C55E' },
-  writing: { label: 'Writing', icon: '✍️', color: '#FFD966' },
-  hygiene: { label: 'Hygiene', icon: '🧼', color: '#9B8FB5' },
-  appearance: { label: 'Appearance', icon: '🪞', color: '#FFB800' },
-  confidence: { label: 'Confidence', icon: '👑', color: '#EF4444' },
-  social: { label: 'Social Skills', icon: '🤝', color: '#FFD966' },
-  communication: { label: 'Communication', icon: '🗣️', color: '#22C55E' },
-  career: { label: 'Career', icon: '📈', color: '#7C3AED' },
-  health: { label: 'Health', icon: '🌿', color: '#22C55E' },
-  'mens-health': { label: "Men's Health", icon: '🛡️', color: '#38BDF8' },
-  style: { label: 'Style', icon: '🧥', color: '#FFB800' },
-  haircare: { label: 'Hair Care', icon: '🧴', color: '#38BDF8' },
-} as const;
+export const categoryMeta: Record<QuestCategory, { label: string; color: string; textColor?: string }> = {
+  fitness: { label: 'Fitness', color: colors.gold, textColor: colors.ink },
+  study: { label: 'Study', color: colors.screentoneLight },
+  coding: { label: 'Coding', color: colors.indigo },
+  writing: { label: 'Writing', color: colors.parchmentDim, textColor: colors.ink },
+  hygiene: { label: 'Hygiene', color: colors.screentoneLight },
+  appearance: { label: 'Appearance', color: colors.parchmentDim, textColor: colors.ink },
+  confidence: { label: 'Confidence', color: colors.gold, textColor: colors.ink },
+  social: { label: 'Social', color: colors.indigo },
+  communication: { label: 'Comms', color: colors.indigo },
+  career: { label: 'Career', color: colors.gold, textColor: colors.ink },
+  health: { label: 'Health', color: colors.sealRed },
+  'mens-health': { label: "Men's Health", color: colors.sealRed },
+  style: { label: 'Style', color: colors.parchmentDim, textColor: colors.ink },
+  haircare: { label: 'Hair Care', color: colors.sealRed },
+};
+
+export const rankMeta: Record<RankName, { letter: string; outer: string; inner?: string }> = {
+  Beginner: { letter: 'E', outer: colors.parchmentDim },
+  Trainee: { letter: 'D', outer: colors.indigo },
+  Hunter: { letter: 'C', outer: colors.sealRed },
+  Elite: { letter: 'B', outer: colors.gold },
+  Hero: { letter: 'A', outer: colors.parchment, inner: colors.parchmentDim },
+  King: { letter: 'S', outer: colors.sealRed, inner: colors.gold },
+};

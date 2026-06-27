@@ -15,6 +15,7 @@ import { HistoryDayCard } from '../components/HistoryDayCard';
 import { MetricCard } from '../components/MetricCard';
 import { theme } from '../constants/theme';
 import {
+  buildRecentActivityGrid,
   buildDailyHistoryGroups,
   buildMonthlySummary,
   buildXPTrackingSummary,
@@ -22,6 +23,7 @@ import {
 } from '../lib/analytics';
 import { getCompletionLog, getHairLog, getHistory, getProfile, getProgress } from '../lib/storage';
 import type {
+  ActivityGridCell,
   DailyHistoryGroup,
   HairLogEntry as HairLogEntryType,
   MonthlySummary,
@@ -38,6 +40,7 @@ export default function HistoryScreen() {
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummary | null>(null);
   const [xpTracking, setXPTracking] = useState<XPTrackingSummary | null>(null);
   const [hairTimeline, setHairTimeline] = useState<HairLogEntryType[]>([]);
+  const [activityGrid, setActivityGrid] = useState<ActivityGridCell[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -65,6 +68,7 @@ export default function HistoryScreen() {
     setHistoryGroups(buildDailyHistoryGroups(history, completionLog));
     setMonthlySummary(buildMonthlySummary(history));
     setXPTracking(buildXPTrackingSummary(history, savedProgress));
+    setActivityGrid(buildRecentActivityGrid(history));
     setHairTimeline(getHairLogTimeline(hairLog));
   }, [router]);
 
@@ -182,6 +186,38 @@ export default function HistoryScreen() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Improvement Grid</Text>
+        <Text style={styles.sectionBody}>
+          Last 35 days of progress. Empty means no XP, then low, medium, and strong improvement days.
+        </Text>
+        <View style={styles.gridLegend}>
+          <Text style={styles.legendText}>LESS</Text>
+          <View style={[styles.gridCell, styles.gridCellNone]} />
+          <View style={[styles.gridCell, styles.gridCellLow]} />
+          <View style={[styles.gridCell, styles.gridCellMedium]} />
+          <View style={[styles.gridCell, styles.gridCellHigh]} />
+          <Text style={styles.legendText}>MORE</Text>
+        </View>
+        <View style={styles.activityGrid}>
+          {activityGrid.map((cell) => (
+            <View
+              key={cell.date}
+              style={[
+                styles.gridCell,
+                cell.intensity === 'none'
+                  ? styles.gridCellNone
+                  : cell.intensity === 'low'
+                    ? styles.gridCellLow
+                    : cell.intensity === 'medium'
+                      ? styles.gridCellMedium
+                      : styles.gridCellHigh,
+              ]}
+            />
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Daily History</Text>
         {historyGroups.length === 0 ? (
           <View style={styles.emptyState}>
@@ -273,10 +309,48 @@ const styles = StyleSheet.create({
     fontSize: theme.font.lg,
     fontWeight: '800',
   },
+  sectionBody: {
+    color: theme.colors.textMuted,
+    fontSize: theme.font.sm,
+    lineHeight: 18,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: theme.spacing.md,
+  },
+  gridLegend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  legendText: {
+    color: theme.colors.textMuted,
+    fontSize: theme.font.sm,
+    fontWeight: '700',
+  },
+  activityGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  gridCell: {
+    width: 18,
+    height: 18,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  gridCellNone: {
+    backgroundColor: theme.colors.surfaceAlt,
+  },
+  gridCellLow: {
+    backgroundColor: theme.colors.primary,
+  },
+  gridCellMedium: {
+    backgroundColor: theme.colors.accent,
+  },
+  gridCellHigh: {
+    backgroundColor: theme.colors.success,
   },
   list: {
     gap: theme.spacing.md,
