@@ -21,6 +21,7 @@ export type MainGoal =
   | 'all-rounder';
 
 export type ExperienceLevel = 'beginner' | 'normal' | 'serious';
+export type ProfileGender = 'male' | 'female';
 
 export type QuestCategory =
   | 'fitness'
@@ -62,7 +63,9 @@ export type GoalCategory =
 
 export interface PlayerProfile {
   name: string;
-  mainGoal: MainGoal;
+  gender: ProfileGender;
+  dob: string;
+  mainGoals: MainGoal[];
   experienceLevel: ExperienceLevel;
   wakeTime: string;
   sleepTarget: string;
@@ -108,6 +111,10 @@ export interface DailyQuest extends QuestTemplate {
   completed: boolean;
   completedAt: string | null;
   isBonus: boolean;
+  isPunishment: boolean;
+  locked: boolean;
+  isAnchor: boolean;
+  whyToday: string;
 }
 
 export interface HistoryEntry {
@@ -334,40 +341,6 @@ export interface HabitCalendarCell {
   xp: number;
 }
 
-export interface DailyCheckIn {
-  id: string;
-  date: string;
-  period: 'morning' | 'night';
-  mood: number;
-  energy: number;
-  sleep: number;
-  confidence: number;
-  focus: number;
-  note: string;
-  createdAt: string;
-}
-
-export interface ReflectionJournalEntry {
-  id: string;
-  date: string;
-  title: string;
-  content: string;
-  createdAt: string;
-}
-
-export interface FocusSession {
-  id: string;
-  date: string;
-  category: QuestCategory | 'deep-work';
-  label: string;
-  targetMinutes: number;
-  completedMinutes: number;
-  completed: boolean;
-  rewardXP: number;
-  createdAt: string;
-  completedAt: string | null;
-}
-
 export interface MilestoneVision {
   id: string;
   title: string;
@@ -406,6 +379,7 @@ export interface WorkoutEntry {
   id: string;
   date: string;
   workoutType: 'strength' | 'cardio' | 'mobility' | 'sports';
+  sessionTime: 'morning' | 'evening' | 'both';
   title: string;
   durationMinutes: number;
   sets: number;
@@ -417,16 +391,20 @@ export interface WorkoutEntry {
   createdAt: string;
 }
 
-export interface RelapseReflection {
-  id: string;
-  date: string;
-  trigger: string;
-  timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
-  urgeLevel: number;
-  actionTaken: string;
-  recoveryPlan: string;
-  note: string;
-  createdAt: string;
+export interface NotificationReminderSettings {
+  enabled: boolean;
+  hour: number;
+  minute: number;
+}
+
+export interface AppSettings {
+  dobPromptDismissedAt: string | null;
+  energyMode: 'light' | 'standard' | 'beast';
+  notifications: {
+    dailyQuest: NotificationReminderSettings;
+    noFapCheckIn: NotificationReminderSettings;
+    focusWorkout: NotificationReminderSettings;
+  };
 }
 
 export interface RecoveryQuestSuggestion {
@@ -476,13 +454,10 @@ export interface AppExportData {
     mensHealthState: MensHealthState | null;
     mensHealthLogs: MensHealthLog[];
     weeklyReviews: WeeklyReview[];
-    dailyCheckIns: DailyCheckIn[];
-    journalEntries: ReflectionJournalEntry[];
-    focusSessions: FocusSession[];
     milestones: MilestoneVision[];
     dopamineLogs: DopamineLog[];
     sleepEntries: SleepRecoveryEntry[];
     workoutEntries: WorkoutEntry[];
-    relapseReflections: RelapseReflection[];
+    settings?: AppSettings | null;
   };
 }

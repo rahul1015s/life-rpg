@@ -3,7 +3,9 @@ import { Alert, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, 
 import * as ImagePicker from 'expo-image-picker';
 import { nanoid } from 'nanoid/non-secure';
 import { type Href, useFocusEffect, useRouter } from 'expo-router';
+import type { MarkedDates } from 'react-native-calendars/src/types';
 
+import { AppCalendar } from '../components/AppCalendar';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { theme } from '../constants/theme';
 import { summarizeWorkoutProgress } from '../lib/growthEngine';
@@ -16,6 +18,7 @@ function emptyWorkout(date: string): WorkoutEntry {
     id: nanoid(),
     date,
     workoutType: 'strength',
+    sessionTime: 'both',
     title: '',
     durationMinutes: 45,
     sets: 3,
@@ -29,6 +32,7 @@ function emptyWorkout(date: string): WorkoutEntry {
 }
 
 const workoutTypes: WorkoutEntry['workoutType'][] = ['strength', 'cardio', 'mobility', 'sports'];
+const sessionTimes: WorkoutEntry['sessionTime'][] = ['morning', 'evening', 'both'];
 
 export default function WorkoutProgressScreen() {
   const router = useRouter();
@@ -114,6 +118,16 @@ export default function WorkoutProgressScreen() {
   }
 
   const summary = useMemo(() => summarizeWorkoutProgress(entries), [entries]);
+  const markedDates = useMemo<MarkedDates>(
+    () =>
+      entries.reduce<MarkedDates>((acc, entry) => {
+        acc[entry.date] = {
+          dots: [{ key: 'workout', color: '#2ecc71' }],
+        };
+        return acc;
+      }, {}),
+    [entries]
+  );
 
   return (
     <ScrollView
@@ -138,6 +152,12 @@ export default function WorkoutProgressScreen() {
       </View>
 
       <View style={styles.card}>
+        <Text style={styles.cardTitle}>Workout calendar</Text>
+        <Text style={styles.meta}>Green dates show completed workout logs.</Text>
+        <AppCalendar markedDates={markedDates} current={draft.date} />
+      </View>
+
+      <View style={styles.card}>
         <Text style={styles.cardTitle}>Log workout</Text>
         <TextInput
           style={styles.input}
@@ -155,6 +175,19 @@ export default function WorkoutProgressScreen() {
               <Text style={styles.chipText}>{type}</Text>
             </Pressable>
           ))}
+        </View>
+        <View style={styles.fieldWrap}>
+          <Text style={styles.fieldLabel}>Session time</Text>
+          <View style={styles.row}>
+            {sessionTimes.map((time) => (
+              <Pressable
+                key={time}
+                style={[styles.chip, draft.sessionTime === time ? styles.chipSelected : null]}
+                onPress={() => setDraft((current) => ({ ...current, sessionTime: time }))}>
+                <Text style={styles.chipText}>{time}</Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
         <NumberField label="Duration minutes" value={draft.durationMinutes} onChange={(value) => setDraft((current) => ({ ...current, durationMinutes: value }))} />
         <NumberField label="Sets" value={draft.sets} onChange={(value) => setDraft((current) => ({ ...current, sets: value }))} />
@@ -180,7 +213,7 @@ export default function WorkoutProgressScreen() {
           <View key={entry.id} style={styles.card}>
             <Text style={styles.cardTitle}>{entry.title || 'Workout session'}</Text>
             <Text style={styles.meta}>
-              {entry.date} · {entry.workoutType} · {entry.durationMinutes} min · effort {entry.effort}/10
+              {entry.date} · {entry.sessionTime} · {entry.workoutType} · {entry.durationMinutes} min · effort {entry.effort}/10
             </Text>
             <Text style={styles.body}>
               {entry.sets} sets · {entry.reps} reps · {entry.weightKg} kg

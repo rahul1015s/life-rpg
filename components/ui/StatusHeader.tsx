@@ -14,8 +14,16 @@ type StatusHeaderProps = {
   rank: import('../../lib/types').RankName;
 };
 
-function getGoalLabel(mainGoal: PlayerProfile['mainGoal']) {
-  return mainGoal.replace(/-/g, ' ').toUpperCase();
+function getGoalLabel(mainGoals: PlayerProfile['mainGoals']) {
+  const goals = mainGoals.filter((goal) => goal !== 'all-rounder');
+  if (goals.length === 0) {
+    return 'ALL ROUNDER';
+  }
+
+  return goals
+    .slice(0, 2)
+    .map((goal) => goal.replace(/-/g, ' ').toUpperCase())
+    .join(' + ');
 }
 
 export function StatusHeader({ profile, progress, rank }: StatusHeaderProps) {
@@ -26,7 +34,7 @@ export function StatusHeader({ profile, progress, rank }: StatusHeaderProps) {
         <RankSeal rank={rank} />
         <View style={styles.copy}>
           <Text style={styles.name}>{profile.name}</Text>
-          <Text style={styles.sub}>HUNTER RANK · {getGoalLabel(profile.mainGoal)} PATH</Text>
+          <Text style={styles.sub}>HUNTER RANK · {getGoalLabel(profile.mainGoals)} PATH</Text>
         </View>
         <View>
           <Text style={styles.level}>LV {progress.level}</Text>

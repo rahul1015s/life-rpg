@@ -1,10 +1,12 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import type { MarkedDates } from 'react-native-calendars/src/types';
 import { type Href, useFocusEffect, useRouter } from 'expo-router';
 
+import { AppCalendar } from '../components/AppCalendar';
 import { theme } from '../constants/theme';
 import { buildHabitCalendar } from '../lib/growthEngine';
-import { getProfile, getHistory } from '../lib/storage';
+import { getHistory, getProfile } from '../lib/storage';
 import type { HabitCalendarCell } from '../lib/types';
 
 export default function HabitCalendarScreen() {
@@ -36,6 +38,27 @@ export default function HabitCalendarScreen() {
     }
   }
 
+  const markedDates = useMemo<MarkedDates>(() => {
+    return cells.reduce<MarkedDates>((acc, cell) => {
+      if (!cell.completed) {
+        return acc;
+      }
+
+      acc[cell.date] = {
+        dots: [
+          {
+            key: cell.intensity,
+            color: cell.questsCompleted >= 3 ? theme.colors.gold : theme.colors.indigo,
+          },
+        ],
+      };
+      return acc;
+    }, {});
+  }, [cells]);
+
+  const activeDays = cells.filter((cell) => cell.completed).length;
+  const strongDays = cells.filter((cell) => cell.questsCompleted >= 3).length;
+
   return (
     <ScrollView
       style={styles.screen}
@@ -46,30 +69,14 @@ export default function HabitCalendarScreen() {
       </Pressable>
       <View style={styles.heroCard}>
         <Text style={styles.kicker}>HABIT CALENDAR</Text>
-        <Text style={styles.title}>Month view of your consistency</Text>
+        <Text style={styles.title}>Unified monthly quest consistency view</Text>
+        <Text style={styles.body}>{activeDays} active days · {strongDays} strong days this month</Text>
       </View>
 
-      <View style={styles.legend}>
-        <View style={[styles.legendDot, styles.none]} />
-        <Text style={styles.legendText}>none</Text>
-        <View style={[styles.legendDot, styles.light]} />
-        <Text style={styles.legendText}>light</Text>
-        <View style={[styles.legendDot, styles.strong]} />
-        <Text style={styles.legendText}>strong</Text>
-      </View>
-
-      <View style={styles.grid}>
-        {cells.map((cell) => (
-          <View key={cell.date} style={styles.cellWrap}>
-            <View
-              style={[
-                styles.cell,
-                cell.intensity === 'none' ? styles.none : cell.intensity === 'light' ? styles.light : styles.strong,
-              ]}
-            />
-            <Text style={styles.day}>{cell.date.slice(-2)}</Text>
-          </View>
-        ))}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Quest Intensity</Text>
+        <Text style={styles.body}>Indigo marks 1-2 completed quests. Gold marks 3 or more completed quests.</Text>
+        <AppCalendar markedDates={markedDates} />
       </View>
     </ScrollView>
   );
@@ -89,15 +96,14 @@ const styles = StyleSheet.create({
   },
   kicker: { color: theme.colors.accentGlow, fontSize: theme.font.sm, fontWeight: '800', letterSpacing: 1 },
   title: { color: theme.colors.textPrimary, fontSize: theme.font.xl, fontWeight: '900' },
-  legend: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, flexWrap: 'wrap' },
-  legendDot: { width: 14, height: 14, borderRadius: 4, borderWidth: 1, borderColor: theme.colors.border },
-  legendText: { color: theme.colors.textMuted, fontSize: theme.font.sm },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
-  cellWrap: { width: '12%', minWidth: 34, alignItems: 'center', gap: 4 },
-  cell: { width: 28, height: 28, borderRadius: 6, borderWidth: 1, borderColor: theme.colors.border },
-  none: { backgroundColor: theme.colors.surfaceAlt },
-  light: { backgroundColor: theme.colors.primary },
-  strong: { backgroundColor: theme.colors.accent },
-  day: { color: theme.colors.textMuted, fontSize: theme.font.sm },
+  body: { color: theme.colors.textMuted, fontSize: theme.font.md, lineHeight: 20 },
+  card: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
+  cardTitle: { color: theme.colors.textPrimary, fontSize: theme.font.md, fontWeight: '800' },
 });
-

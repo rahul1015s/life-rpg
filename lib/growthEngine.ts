@@ -1,24 +1,21 @@
 import { questCatalog } from '../constants/questCatalog';
 import { getLocalDateString, parseLocalDate, shiftDate } from './haircareEngine';
+import { getDisciplineCopy } from './utils/profile';
 import type {
   BalanceRadarPoint,
   CategoryInsight,
-  DailyCheckIn,
   DopamineLog,
-  FocusSession,
   HabitCalendarCell,
   HistoryEntry,
   MilestoneVision,
-  MensHealthLog,
   PlayerProgress,
   QuestCategory,
   QuestCompletionLogEntry,
   RecoveryQuestSuggestion,
-  RelapseReflection,
-  ReflectionJournalEntry,
   SleepRecoveryEntry,
   SmartQuestSuggestion,
   StatKey,
+  ProfileGender,
   WeeklyReview,
   WorkoutEntry,
 } from './types';
@@ -153,7 +150,7 @@ export function buildRecoverySuggestions(
     {
       id: 'recovery-reset',
       title: 'Recovery Reset Day',
-      description: 'Do one easy physical quest, one focus quest, and one cleanup habit to restart momentum.',
+      description: 'Do one easy physical quest, one progress quest, and one cleanup habit to restart momentum.',
       category: 'health',
       reason: `${missedDates.length} recent low-output day${missedDates.length > 1 ? 's' : ''} triggered a soft recovery plan.`,
       recommendedXP: 30,
@@ -163,7 +160,7 @@ export function buildRecoverySuggestions(
       title: 'Review the Missed Pattern',
       description: 'Write what caused the slip and choose one smaller action for tomorrow.',
       category: 'career',
-      reason: 'Reflection lowers the chance of repeating the same pattern.',
+      reason: 'A quick review lowers the chance of repeating the same pattern.',
       recommendedXP: 20,
     },
   ];
@@ -202,58 +199,10 @@ export function buildSmartQuestSuggestions(
   return suggestions;
 }
 
-export function buildCheckInTrend(checkIns: DailyCheckIn[]): { averageMood: number; averageFocus: number; averageEnergy: number } {
-  if (checkIns.length === 0) {
-    return { averageMood: 0, averageFocus: 0, averageEnergy: 0 };
-  }
-  const total = checkIns.reduce(
-    (acc, entry) => {
-      acc.mood += entry.mood;
-      acc.focus += entry.focus;
-      acc.energy += entry.energy;
-      return acc;
-    },
-    { mood: 0, focus: 0, energy: 0 }
-  );
-  return {
-    averageMood: Math.round((total.mood / checkIns.length) * 10) / 10,
-    averageFocus: Math.round((total.focus / checkIns.length) * 10) / 10,
-    averageEnergy: Math.round((total.energy / checkIns.length) * 10) / 10,
-  };
-}
-
-export function summarizeFocusSessions(focusSessions: FocusSession[]): { totalMinutes: number; completedSessions: number } {
-  return focusSessions.reduce(
-    (acc, session) => {
-      acc.totalMinutes += session.completedMinutes;
-      if (session.completed) {
-        acc.completedSessions += 1;
-      }
-      return acc;
-    },
-    { totalMinutes: 0, completedSessions: 0 }
-  );
-}
-
 export function getActiveMilestones(milestones: MilestoneVision[]): MilestoneVision[] {
   return milestones
     .filter((milestone) => milestone.status === 'active')
     .sort((first, second) => first.targetDate.localeCompare(second.targetDate));
-}
-
-export function getRecentJournalStreak(entries: ReflectionJournalEntry[]): number {
-  if (entries.length === 0) {
-    return 0;
-  }
-
-  const dates = new Set(entries.map((entry) => entry.date));
-  let streak = 0;
-  let cursor = getLocalDateString();
-  while (dates.has(cursor)) {
-    streak += 1;
-    cursor = shiftDate(cursor, -1);
-  }
-  return streak;
 }
 
 export function summarizeSleepRecovery(entries: SleepRecoveryEntry[]): {
@@ -335,38 +284,116 @@ export function summarizeWorkoutProgress(entries: WorkoutEntry[]): {
   );
 }
 
-export function buildRelapseInsights(
-  mensHealthLogs: MensHealthLog[],
-  dopamineLogs: DopamineLog[],
-  reflections: RelapseReflection[]
-): {
-  relapseDays: number;
-  topTrigger: string;
-  highestRiskTime: string;
-  recentRiskPattern: string;
-} {
-  const relapseLogs = mensHealthLogs.filter((log) => log.noFapStatus === 'relapse' || log.noPornStatus === 'relapse');
-  const triggerCounts = new Map<string, number>();
-  const timeCounts = new Map<string, number>();
-
-  for (const reflection of reflections) {
-    if (reflection.trigger.trim()) {
-      triggerCounts.set(reflection.trigger, (triggerCounts.get(reflection.trigger) ?? 0) + 1);
-    }
-    timeCounts.set(reflection.timeOfDay, (timeCounts.get(reflection.timeOfDay) ?? 0) + 1);
+export function buildQuestPunishmentPreview(
+  pendingQuestCount: number,
+  hasWorkoutLog: boolean,
+  hasDisciplineLog: boolean,
+  gender: ProfileGender = 'male'
+): { title: string; consequence: string; atonement: string } | null {
+  if (pendingQuestCount <= 0) {
+    return null;
   }
 
-  const topTrigger = [...triggerCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'No trigger logged yet';
-  const highestRiskTime = [...timeCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'Not enough data';
-  const riskyDopamineDays = dopamineLogs.filter((log) => log.urgeLevel >= 7 || log.pornUsed).length;
+  const consequence =
+    pendingQuestCount >= 3
+      ? 'You finish the day with a discipline debt. Tomorrow starts with a reduced comfort budget.'
+      : 'A missed quest weakens momentum. Close the day with one recovery action instead of drifting.';
+  const disciplineCopy = getDisciplineCopy(gender);
+  const atonement = !hasDisciplineLog
+    ? disciplineCopy.reminderMessage
+    : !hasWorkoutLog
+      ? 'Do a short walk, stretch, or mobility reset so the day still gets a physical win.'
+      : 'Do a 10-minute walk, drink water, and clear one easy task first thing tomorrow.';
 
   return {
-    relapseDays: relapseLogs.length,
-    topTrigger,
-    highestRiskTime,
-    recentRiskPattern:
-      riskyDopamineDays >= 3
-        ? 'High-urge or overstimulated days are stacking up. Use earlier cutoffs and faster recovery actions.'
-        : 'Risk looks manageable. Keep logging triggers before urges become automatic.',
+    title: pendingQuestCount >= 3 ? 'BOSS PENALTY WARNING' : 'DISCIPLINE TAX',
+    consequence,
+    atonement,
+  };
+}
+
+export function buildBossBattles(currentStreak: number): Array<{
+  id: string;
+  label: string;
+  target: number;
+  progress: number;
+  defeated: boolean;
+  reward: string;
+}> {
+  return [
+    { id: 'weekly-gate', label: 'Weekly Gatekeeper', target: 7, reward: 'Scroll badge + discipline surge' },
+    { id: 'month-beast', label: '30-Day Shadow Beast', target: 30, reward: 'Boss defeated badge + cutscene moment' },
+    { id: 'legend-warden', label: '90-Day Warden', target: 90, reward: 'Legend title + elite theme unlock' },
+  ].map((battle) => ({
+    ...battle,
+    progress: Math.min(currentStreak, battle.target),
+    defeated: currentStreak >= battle.target,
+  }));
+}
+
+export function buildRewardInventory(totalXP: number, currentStreak: number): Array<{
+  id: string;
+  label: string;
+  type: 'title' | 'theme';
+  unlocked: boolean;
+  requirement: string;
+}> {
+  return [
+    {
+      id: 'title-initiate',
+      label: 'Title: Quest Initiate',
+      type: 'title',
+      unlocked: totalXP >= 250,
+      requirement: '250 XP',
+    },
+    {
+      id: 'theme-ember',
+      label: 'Theme: Ember Discipline',
+      type: 'theme',
+      unlocked: totalXP >= 500,
+      requirement: '500 XP',
+    },
+    {
+      id: 'title-iron-will',
+      label: 'Title: Iron Will',
+      type: 'title',
+      unlocked: totalXP >= 750 && currentStreak >= 14,
+      requirement: '750 XP + 14-day streak',
+    },
+    {
+      id: 'theme-warden',
+      label: 'Theme: Warden Midnight',
+      type: 'theme',
+      unlocked: totalXP >= 1200 && currentStreak >= 30,
+      requirement: '1200 XP + 30-day streak',
+    },
+  ];
+}
+
+export function buildAvatarEvolution(progress: PlayerProgress): {
+  title: string;
+  summary: string;
+} {
+  const dominantStat = Object.entries(progress.stats).sort((first, second) => second[1] - first[1])[0]?.[0] as
+    | StatKey
+    | undefined;
+
+  if (dominantStat === 'discipline' || dominantStat === 'focus') {
+    return {
+      title: progress.level >= 10 ? 'TACTICIAN FORM' : 'DISCIPLINE ADEPT',
+      summary: 'Your avatar is evolving around controlled habits, focus, and steady execution.',
+    };
+  }
+
+  if (dominantStat === 'strength' || dominantStat === 'stamina') {
+    return {
+      title: progress.level >= 10 ? 'VANGUARD FORM' : 'IRON TRAINEE',
+      summary: 'Your build is leaning into body stats and physical consistency.',
+    };
+  }
+
+  return {
+    title: progress.level >= 10 ? 'ASCENDANT FORM' : 'RISING HUNTER',
+    summary: 'Balanced growth is shaping your character into a well-rounded build.',
   };
 }

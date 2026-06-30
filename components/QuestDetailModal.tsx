@@ -31,6 +31,7 @@ export function QuestDetailModal({ quest, visible, onClose }: QuestDetailModalPr
               <Text style={styles.categoryBadge}>{categoryLabels[quest.category]}</Text>
               <Text style={styles.difficultyBadge}>{getDifficultyLabel(quest.difficulty)}</Text>
               {quest.isBonus ? <Text style={styles.bonusBadge}>Bonus</Text> : null}
+              {quest.isAnchor ? <Text style={styles.anchorBadge}>Anchor</Text> : null}
             </View>
 
             <Text style={styles.title}>{quest.title}</Text>
@@ -41,6 +42,11 @@ export function QuestDetailModal({ quest, visible, onClose }: QuestDetailModalPr
               <Text style={styles.metaLine}>Recommended Time: {quest.recommendedTime}</Text>
               <Text style={styles.metaLine}>Repeat Type: {quest.repeatType}</Text>
               <Text style={styles.metaLine}>Affected Stats: {formatStats(quest.statEffects)}</Text>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Why Today</Text>
+              <Text style={styles.body}>{quest.whyToday || 'Generated to support your current growth system.'}</Text>
             </View>
 
             <View style={styles.section}>
@@ -108,6 +114,15 @@ const styles = StyleSheet.create({
   },
   bonusBadge: {
     backgroundColor: theme.colors.accent,
+    color: theme.colors.background,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: 999,
+    fontSize: theme.font.sm,
+    fontWeight: '800',
+  },
+  anchorBadge: {
+    backgroundColor: theme.colors.textPrimary,
     color: theme.colors.background,
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: theme.spacing.xs,

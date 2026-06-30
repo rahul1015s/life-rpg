@@ -65,6 +65,10 @@ export function normalizeDailyQuest(quest: Partial<DailyQuest> & { id: string; t
     completedAt: quest.completedAt ?? null,
     dateAssigned: quest.dateAssigned ?? '',
     isBonus: quest.isBonus ?? false,
+    isPunishment: quest.isPunishment ?? false,
+    locked: quest.locked ?? false,
+    isAnchor: quest.isAnchor ?? false,
+    whyToday: quest.whyToday ?? '',
   };
 }
 

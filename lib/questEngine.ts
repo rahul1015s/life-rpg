@@ -15,6 +15,7 @@ import {
   getProfile,
   getProgress,
   getQuestRotation,
+  getSettings,
   setAchievements,
   setCompletionLog,
   setCustomQuests,
@@ -32,6 +33,7 @@ import { normalizeDailyQuest } from './questUtils';
 import type {
   AchievementUnlock,
   AchievementUnlockResult,
+  AppSettings,
   CustomQuest,
   DailyQuest,
   GoalRewardResult,
@@ -55,8 +57,14 @@ const BODY_CATEGORIES: QuestCategory[] = ['fitness', 'health', 'hygiene', 'appea
 const FOCUS_CATEGORIES: QuestCategory[] = ['study', 'coding', 'career', 'writing'];
 const SOCIAL_CATEGORIES: QuestCategory[] = ['confidence', 'communication', 'social'];
 const ROTATION_MEMORY_DAYS = 4;
+const MAX_PUNISHMENT_QUESTS = 2;
 
-function toDailyQuest(template: QuestTemplate, dateAssigned: string, isBonus: boolean): DailyQuest {
+function toDailyQuest(
+  template: QuestTemplate,
+  dateAssigned: string,
+  isBonus: boolean,
+  options?: { isAnchor?: boolean; whyToday?: string }
+): DailyQuest {
   return normalizeDailyQuest({
     ...template,
     xp: template.baseXP,
@@ -65,7 +73,80 @@ function toDailyQuest(template: QuestTemplate, dateAssigned: string, isBonus: bo
     completed: false,
     completedAt: null,
     isBonus,
+    isPunishment: false,
+    locked: false,
+    isAnchor: options?.isAnchor ?? false,
+    whyToday: options?.whyToday ?? '',
   });
+}
+
+function createPunishmentQuest(missedQuest: DailyQuest, dateAssigned: string, index: number, totalMissed: number): DailyQuest {
+  const tier = Math.min(totalMissed + index, 4);
+  const templates: QuestTemplate[] = [
+    {
+      id: `punishment-pushups-${dateAssigned}-${index}`,
+      title: `Punishment: Do ${20 + tier * 5} pushups`,
+      description: 'Make up for yesterday by completing a stricter upper-body bodyweight set with clean form.',
+      category: 'fitness',
+      difficulty: tier >= 3 ? 'hard' : 'medium',
+      baseXP: 18 + tier * 2,
+      affectedStats: { strength: 2, discipline: 2, appearance: 1 },
+      repeatType: 'daily',
+      recommendedTime: '8-12 min',
+      whyThisHelps: 'Pushups train the chest, shoulders, and triceps while reinforcing discipline after a missed day.',
+      safetyNote: 'Scale to incline pushups if full pushups break form or cause pain.',
+    },
+    {
+      id: `punishment-dips-${dateAssigned}-${index}`,
+      title: `Punishment: Do ${2 + tier} x ${8 + tier * 2} chair dips`,
+      description: 'Use a stable chair or bench and finish the full dip volume before other quests unlock.',
+      category: 'fitness',
+      difficulty: 'hard',
+      baseXP: 20 + tier * 2,
+      affectedStats: { strength: 2, discipline: 2, appearance: 1 },
+      repeatType: 'daily',
+      recommendedTime: '10-15 min',
+      whyThisHelps: 'Chair dips add extra triceps and shoulder work and make the penalty feel real.',
+      safetyNote: 'Use a stable surface and stop if you feel shoulder pinching.',
+    },
+    {
+      id: `punishment-pike-${dateAssigned}-${index}`,
+      title: `Punishment: Do ${2 + tier} x ${6 + tier * 2} pike pushups`,
+      description: 'Complete the pike pushup sets with controlled reps to earn back access to your normal quest board.',
+      category: 'fitness',
+      difficulty: 'hard',
+      baseXP: 20 + tier * 2,
+      affectedStats: { strength: 2, confidence: 1, discipline: 2 },
+      repeatType: 'daily',
+      recommendedTime: '10-15 min',
+      whyThisHelps: 'Pike pushups bias the shoulders and upper chest and make missed days cost more.',
+      safetyNote: 'Reduce range or elevate the hands if your shoulders or wrists feel strained.',
+    },
+  ];
+
+  const template = templates[index % templates.length];
+  return normalizeDailyQuest({
+    ...template,
+    id: `${template.id}-${missedQuest.id}`,
+    title: template.title,
+    dateAssigned,
+    xp: template.baseXP,
+    statEffects: template.affectedStats,
+    isBonus: false,
+    isPunishment: true,
+    locked: false,
+    isAnchor: false,
+    whyToday: 'Punishment quest: yesterday was left unfinished, so this must be cleared before today’s normal board unlocks.',
+    completed: false,
+    completedAt: null,
+  });
+}
+
+function createLockedQuests(quests: DailyQuest[], locked: boolean): DailyQuest[] {
+  return quests.map((quest) => ({
+    ...quest,
+    locked: locked && !quest.isPunishment && !quest.completed,
+  }));
 }
 
 function pickRandom<T>(items: T[]): T {
@@ -173,10 +254,12 @@ function buildQuestPool(
 }
 
 function getGoalCategory(profile: PlayerProfile): QuestCategory | null {
-  if (profile.mainGoal === 'all-rounder') {
+  const filteredGoals = profile.mainGoals.filter((goal) => goal !== 'all-rounder');
+  if (filteredGoals.length === 0) {
     return null;
   }
-  return mainGoalCategoryMap[profile.mainGoal];
+
+  return mainGoalCategoryMap[pickRandom(filteredGoals)];
 }
 
 function getRecentQuestIds(rotationHistory: QuestRotationEntry[]): Set<string> {
@@ -188,11 +271,223 @@ function getRecentQuestIds(rotationHistory: QuestRotationEntry[]): Set<string> {
   return new Set(recentEntries.flatMap((entry) => entry.questIds));
 }
 
+function getRecentCompletionIds(completionLog: QuestCompletionLogEntry[]): Set<string> {
+  return new Set(
+    [...completionLog]
+      .sort((first, second) => second.completedAt.localeCompare(first.completedAt))
+      .slice(0, 10)
+      .map((entry) => entry.questId)
+  );
+}
+
+function getQuestTargetCounts(energyMode: AppSettings['energyMode']) {
+  switch (energyMode) {
+    case 'light':
+      return { main: 4, bonus: 2 };
+    case 'beast':
+      return { main: 6, bonus: 4 };
+    default:
+      return { main: MAIN_QUEST_COUNT, bonus: BONUS_QUEST_COUNT };
+  }
+}
+
+function getIntensityTier(
+  profile: PlayerProfile,
+  progress: PlayerProgress,
+  settings: AppSettings
+): number {
+  let tier = profile.experienceLevel === 'beginner' ? 0 : profile.experienceLevel === 'normal' ? 1 : 2;
+
+  if (progress.level >= 5) {
+    tier += 1;
+  }
+  if (progress.level >= 12) {
+    tier += 1;
+  }
+
+  if (settings.energyMode === 'light') {
+    tier -= 1;
+  }
+  if (settings.energyMode === 'beast') {
+    tier += 1;
+  }
+
+  return Math.max(0, Math.min(tier, 4));
+}
+
+function getDifficultyRank(difficulty: QuestTemplate['difficulty']) {
+  switch (difficulty) {
+    case 'easy':
+      return 0;
+    case 'medium':
+      return 1;
+    case 'hard':
+      return 2;
+  }
+}
+
+function tuneQuestTemplate(
+  template: QuestTemplate,
+  profile: PlayerProfile,
+  progress: PlayerProgress,
+  settings: AppSettings
+): QuestTemplate {
+  const tier = getIntensityTier(profile, progress, settings);
+  const scaled = {
+    ...template,
+    baseXP: template.baseXP + Math.max(0, tier - 1) * 2,
+  };
+
+  switch (template.id) {
+    case 'fitness-incline-pushups': {
+      const reps = 12 + tier * 3;
+      return {
+        ...scaled,
+        title: `Do ${reps} incline pushups`,
+        description: `Use a bench, bed, or sturdy surface and complete ${reps} smooth incline pushups.`,
+        difficulty: reps >= 21 ? 'medium' : 'easy',
+      };
+    }
+    case 'fitness-pushups': {
+      const reps = 15 + tier * 5;
+      return {
+        ...scaled,
+        title: `Do ${reps} pushups`,
+        description: `Complete a clean set of ${reps} pushups with full control.`,
+        difficulty: reps >= 30 ? 'hard' : reps >= 20 ? 'medium' : 'easy',
+      };
+    }
+    case 'fitness-chair-dips': {
+      const sets = 2 + Math.min(tier, 2);
+      const reps = 8 + tier * 2;
+      return {
+        ...scaled,
+        title: `Do ${sets} x ${reps} chair dips`,
+        description: `Use a stable chair or bench and complete ${sets} controlled sets of ${reps} chair dips.`,
+        difficulty: tier >= 2 ? 'hard' : 'medium',
+      };
+    }
+    case 'fitness-pike-pushups': {
+      const sets = 2 + Math.min(tier, 2);
+      const reps = 6 + tier * 2;
+      return {
+        ...scaled,
+        title: `Do ${sets} x ${reps} pike pushups`,
+        description: `Complete ${sets} controlled sets of ${reps} pike pushups to shift more work into the shoulders.`,
+        difficulty: tier >= 1 ? 'hard' : 'medium',
+      };
+    }
+    case 'fitness-shoulder-taps': {
+      const reps = 16 + tier * 4;
+      return {
+        ...scaled,
+        title: `Do 3 x ${reps} plank shoulder taps`,
+        description: `Hold a strong plank and alternate shoulder taps for three controlled rounds of ${reps} total reps.`,
+      };
+    }
+    case 'fitness-walk': {
+      const minutes = 12 + tier * 4;
+      return {
+        ...scaled,
+        title: `Walk for ${minutes} minutes`,
+        description: `Take a steady ${minutes}-minute walk with attention on posture and breathing.`,
+        recommendedTime: `${minutes} min`,
+      };
+    }
+    case 'fitness-stretch': {
+      const minutes = 8 + tier * 2;
+      return {
+        ...scaled,
+        title: `Stretch for ${minutes} minutes`,
+        description: `Spend ${minutes} minutes loosening hips, shoulders, hamstrings, and upper back.`,
+        recommendedTime: `${minutes} min`,
+      };
+    }
+    case 'study-deep-session': {
+      const minutes = settings.energyMode === 'light' ? 20 : settings.energyMode === 'beast' ? 45 : 30;
+      return {
+        ...scaled,
+        title: `Study your main subject for ${minutes} minutes`,
+        description: `Do one focused ${minutes}-minute study session without multitasking.`,
+        recommendedTime: `${minutes} min`,
+      };
+    }
+    case 'coding-one-hour': {
+      const minutes = settings.energyMode === 'light' ? 45 : settings.energyMode === 'beast' ? 75 : 60;
+      return {
+        ...scaled,
+        title: `Code for ${minutes} minutes`,
+        description: `Spend ${minutes} intentional minutes building, debugging, or learning by doing.`,
+        recommendedTime: `${minutes} min`,
+      };
+    }
+    case 'writing-300-words': {
+      const words = settings.energyMode === 'light' ? 200 : settings.energyMode === 'beast' ? 450 : 300;
+      return {
+        ...scaled,
+        title: `Write ${words} words`,
+        description: `Write ${words} words on a story, article, reflection, or draft in progress.`,
+      };
+    }
+    default:
+      return scaled;
+  }
+}
+
+function explainWhyToday(
+  template: QuestTemplate,
+  goalCategory: QuestCategory | null,
+  energyMode: AppSettings['energyMode'],
+  isAnchor: boolean,
+  wasRecentlyRepeated: boolean
+): string {
+  if (isAnchor) {
+    return `Anchor quest: this is your must-win task for today so you always have one clear momentum builder.`;
+  }
+  if (goalCategory && template.category === goalCategory) {
+    return `Picked because it directly supports your current ${goalCategory.replace(/-/g, ' ')} growth path.`;
+  }
+  if (!wasRecentlyRepeated) {
+    return `Picked to keep your board fresh and prevent the same exact quest from repeating too often.`;
+  }
+  if (energyMode === 'light') {
+    return `Picked to keep today useful but more manageable on light mode.`;
+  }
+  if (energyMode === 'beast') {
+    return `Picked because beast mode is asking the system for a harder push today.`;
+  }
+  return `Picked to balance your body, discipline, and growth categories across the week.`;
+}
+
+function chooseAnchorTemplate(mainTemplates: QuestTemplate[], goalCategory: QuestCategory | null): QuestTemplate | null {
+  const candidates = mainTemplates.filter((quest) => quest.category !== 'haircare');
+  if (candidates.length === 0) {
+    return mainTemplates[0] ?? null;
+  }
+
+  return candidates
+    .slice()
+    .sort((first, second) => {
+      const goalBias = Number(second.category === goalCategory) - Number(first.category === goalCategory);
+      if (goalBias !== 0) {
+        return goalBias;
+      }
+
+      const difficultyBias = getDifficultyRank(first.difficulty) - getDifficultyRank(second.difficulty);
+      if (difficultyBias !== 0) {
+        return difficultyBias;
+      }
+
+      return first.baseXP - second.baseXP;
+    })[0];
+}
+
 function chooseQuestForCategories(
   pool: QuestTemplate[],
   categories: QuestCategory[],
   selectedIds: Set<string>,
   recentIds: Set<string>,
+  recentCompletionIds: Set<string>,
   preferredCategory?: QuestCategory | null
 ): QuestTemplate | null {
   const categoryPool = pool.filter(
@@ -200,7 +495,9 @@ function chooseQuestForCategories(
   );
 
   const byFreshness = (items: QuestTemplate[]) =>
-    items.filter((quest) => !recentIds.has(quest.id)).sort((first, second) => second.baseXP - first.baseXP);
+    items
+      .filter((quest) => !recentIds.has(quest.id) && !recentCompletionIds.has(quest.id))
+      .sort((first, second) => second.baseXP - first.baseXP);
 
   const preferredFresh = preferredCategory
     ? byFreshness(categoryPool.filter((quest) => quest.category === preferredCategory))
@@ -228,6 +525,7 @@ function chooseGeneralQuest(
   pool: QuestTemplate[],
   selectedIds: Set<string>,
   recentIds: Set<string>,
+  recentCompletionIds: Set<string>,
   preferredCategory?: QuestCategory | null
 ): QuestTemplate | null {
   const available = pool.filter((quest) => !selectedIds.has(quest.id));
@@ -237,7 +535,10 @@ function chooseGeneralQuest(
 
   if (preferredCategory) {
     const preferredFresh = available.filter(
-      (quest) => quest.category === preferredCategory && !recentIds.has(quest.id)
+      (quest) =>
+        quest.category === preferredCategory &&
+        !recentIds.has(quest.id) &&
+        !recentCompletionIds.has(quest.id)
     );
     if (preferredFresh.length > 0) {
       return pickRandom(preferredFresh);
@@ -249,7 +550,7 @@ function chooseGeneralQuest(
     }
   }
 
-  const fresh = available.filter((quest) => !recentIds.has(quest.id));
+  const fresh = available.filter((quest) => !recentIds.has(quest.id) && !recentCompletionIds.has(quest.id));
   return pickRandom(fresh.length > 0 ? fresh : available);
 }
 
@@ -272,6 +573,8 @@ function pruneRotationHistory(history: QuestRotationEntry[], today: string, ques
 
 export function generateDailyQuests(
   profile: PlayerProfile,
+  progress: PlayerProgress,
+  settings: AppSettings,
   customQuests: CustomQuest[],
   completionLog: QuestCompletionLogEntry[],
   rotationHistory: QuestRotationEntry[],
@@ -279,10 +582,12 @@ export function generateDailyQuests(
 ): DailyQuest[] {
   const pool = buildQuestPool(profile, customQuests, completionLog);
   const recentIds = getRecentQuestIds(rotationHistory);
+  const recentCompletionIds = getRecentCompletionIds(completionLog);
   const selectedIds = new Set<string>();
   const mainTemplates: QuestTemplate[] = [];
   const bonusTemplates: QuestTemplate[] = [];
   const goalCategory = getGoalCategory(profile);
+  const questTargets = getQuestTargetCounts(settings.energyMode);
 
   // Minoxidil tracking remains guaranteed so existing treatment behavior is preserved.
   if (profile.usesMinoxidil) {
@@ -298,39 +603,67 @@ export function generateDailyQuests(
   appendQuest(
     mainTemplates,
     selectedIds,
-    chooseQuestForCategories(pool, BODY_CATEGORIES, selectedIds, recentIds, bodyPreferred)
+    chooseQuestForCategories(pool, BODY_CATEGORIES, selectedIds, recentIds, recentCompletionIds, bodyPreferred)
   );
   appendQuest(
     mainTemplates,
     selectedIds,
-    chooseQuestForCategories(pool, FOCUS_CATEGORIES, selectedIds, recentIds, focusPreferred)
+    chooseQuestForCategories(pool, FOCUS_CATEGORIES, selectedIds, recentIds, recentCompletionIds, focusPreferred)
   );
   appendQuest(
     mainTemplates,
     selectedIds,
-    chooseQuestForCategories(pool, SOCIAL_CATEGORIES, selectedIds, recentIds, socialPreferred)
+    chooseQuestForCategories(pool, SOCIAL_CATEGORIES, selectedIds, recentIds, recentCompletionIds, socialPreferred)
   );
 
   // Main daily rotation enforces a broad mix first, then uses the remaining slots
   // to respect the player's goal and keep repetition low across recent days.
-  while (mainTemplates.length < MAIN_QUEST_COUNT) {
+  while (mainTemplates.length < questTargets.main) {
     const preferredCategory =
       goalCategory && !mainTemplates.some((quest) => quest.category === goalCategory) ? goalCategory : null;
-    appendQuest(mainTemplates, selectedIds, chooseGeneralQuest(pool, selectedIds, recentIds, preferredCategory));
+    appendQuest(
+      mainTemplates,
+      selectedIds,
+      chooseGeneralQuest(pool, selectedIds, recentIds, recentCompletionIds, preferredCategory)
+    );
   }
 
   // Bonus quests are optional extra XP opportunities, so they pull from the remaining pool
   // without replacing the five main quests or affecting the core daily structure.
-  while (bonusTemplates.length < BONUS_QUEST_COUNT) {
-    appendQuest(bonusTemplates, selectedIds, chooseGeneralQuest(pool, selectedIds, recentIds));
+  while (bonusTemplates.length < questTargets.bonus) {
+    appendQuest(
+      bonusTemplates,
+      selectedIds,
+      chooseGeneralQuest(pool, selectedIds, recentIds, recentCompletionIds)
+    );
     if (pool.length === selectedIds.size) {
       break;
     }
   }
 
+  const anchorTemplate = chooseAnchorTemplate(mainTemplates, goalCategory);
+  const anchorId = anchorTemplate?.id ?? null;
+
   return [
-    ...mainTemplates.map((template) => toDailyQuest(template, today, false)),
-    ...bonusTemplates.map((template) => toDailyQuest(template, today, true)),
+    ...mainTemplates.map((template) => {
+      const tuned = tuneQuestTemplate(template, profile, progress, settings);
+      return toDailyQuest(tuned, today, false, {
+        isAnchor: tuned.id === anchorId,
+        whyToday: explainWhyToday(
+          tuned,
+          goalCategory,
+          settings.energyMode,
+          tuned.id === anchorId,
+          recentCompletionIds.has(tuned.id)
+        ),
+      });
+    }),
+    ...bonusTemplates.map((template) => {
+      const tuned = tuneQuestTemplate(template, profile, progress, settings);
+      return toDailyQuest(tuned, today, true, {
+        whyToday: explainWhyToday(tuned, goalCategory, settings.energyMode, false, recentCompletionIds.has(tuned.id)),
+      });
+    }),
   ];
 }
 
@@ -342,11 +675,13 @@ export async function ensureDailyQuests(profile: PlayerProfile): Promise<DailyQu
     return existingQuests;
   }
 
-  const [history, completionLog, rotationHistory, customQuests] = await Promise.all([
+  const [history, completionLog, rotationHistory, customQuests, progress, settings] = await Promise.all([
     getHistory(),
     getCompletionLog(),
     getQuestRotation(),
     getCustomQuests(),
+    getProgress(),
+    getSettings(),
   ]);
   const mergedHistory = mergeHistoryIfMissing(history, existingQuests);
   const mergedCompletionLog = mergeCompletionLog(completionLog, existingQuests);
@@ -357,7 +692,28 @@ export async function ensureDailyQuests(profile: PlayerProfile): Promise<DailyQu
     await setCompletionLog(mergedCompletionLog);
   }
 
-  const nextQuests = generateDailyQuests(profile, customQuests, completionLog, rotationHistory, today);
+  const missedMainQuests = existingQuests.filter(
+    (quest) => !quest.isBonus && !quest.isPunishment && !quest.completed
+  );
+  const punishmentQuests = missedMainQuests
+    .slice(0, MAX_PUNISHMENT_QUESTS)
+    .map((quest, index) => createPunishmentQuest(quest, today, index, missedMainQuests.length));
+  if (!progress) {
+    throw new Error('Player progress not found.');
+  }
+
+  const generatedQuests = generateDailyQuests(
+    profile,
+    progress,
+    settings,
+    customQuests,
+    mergedCompletionLog,
+    rotationHistory,
+    today
+  );
+  const nextQuests = punishmentQuests.length > 0
+    ? [...punishmentQuests, ...createLockedQuests(generatedQuests, true)]
+    : generatedQuests;
   await Promise.all([
     setDailyQuests(nextQuests),
     setQuestRotation(pruneRotationHistory(rotationHistory, today, nextQuests)),
@@ -497,11 +853,18 @@ export async function completeDailyQuest(questId: string): Promise<QuestCompleti
   if (targetQuest.completed) {
     throw new Error('Quest already completed.');
   }
+  if (targetQuest.locked) {
+    throw new Error('Complete the punishment quest first to unlock the rest of today’s board.');
+  }
 
   const completionTimestamp = new Date().toISOString();
-  const nextQuests = quests.map((quest) =>
+  let nextQuests = quests.map((quest) =>
     quest.id === questId ? { ...quest, completed: true, completedAt: completionTimestamp } : quest
   );
+  const remainingPunishments = nextQuests.filter((quest) => quest.isPunishment && !quest.completed);
+  if (remainingPunishments.length === 0) {
+    nextQuests = nextQuests.map((quest) => ({ ...quest, locked: false }));
+  }
 
   let nextProgress = applyStatEffects(
     {

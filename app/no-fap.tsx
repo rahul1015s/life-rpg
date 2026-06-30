@@ -9,8 +9,10 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import type { MarkedDates } from 'react-native-calendars/src/types';
 import { type Href, useFocusEffect, useRouter } from 'expo-router';
 
+import { AppCalendar } from '../components/AppCalendar';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { theme } from '../constants/theme';
 import {
@@ -23,6 +25,7 @@ import {
 } from '../lib/mensHealthEngine';
 import { getMensHealthLogs, getMensHealthState, getProfile, setMensHealthLogs, setMensHealthState } from '../lib/storage';
 import type { MensHealthLog, MensHealthState } from '../lib/types';
+import { getDisciplineCopy, hasAdultContentAccess } from '../lib/utils/profile';
 
 type TrackerStatus = 'none' | 'clean' | 'relapse';
 
@@ -31,6 +34,8 @@ export default function NoFapScreen() {
   const [state, setState] = useState<MensHealthState | null>(null);
   const [logs, setLogs] = useState<MensHealthLog[]>([]);
   const [todayLog, setTodayLog] = useState<MensHealthLog | null>(null);
+  const [adultAccess, setAdultAccess] = useState(true);
+  const [disciplineCopy, setDisciplineCopy] = useState(() => getDisciplineCopy());
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
@@ -39,6 +44,9 @@ export default function NoFapScreen() {
       router.replace('/onboarding' as Href);
       return;
     }
+
+    setAdultAccess(hasAdultContentAccess(profile.dob));
+    setDisciplineCopy(getDisciplineCopy(profile.gender));
 
     const [savedState, savedLogs] = await Promise.all([getMensHealthState(), getMensHealthLogs()]);
     const nextState = savedState ?? createInitialMensHealthState();
@@ -73,14 +81,36 @@ export default function NoFapScreen() {
     await Promise.all([setMensHealthLogs(nextLogs), setMensHealthState(nextState)]);
     setLogs(nextLogs);
     setState(nextState);
-    Alert.alert('Tracker updated', 'Today’s no-fap and no-porn status has been saved.');
+    Alert.alert('Tracker updated', disciplineCopy.savedMessage);
   }
 
   function setStatus(type: 'noFapStatus' | 'noPornStatus', value: TrackerStatus) {
     setTodayLog((current) => (current ? { ...current, [type]: value } : current));
   }
 
-  const calendar = useMemo(() => buildNoFapCalendar(logs), [logs]);
+  const markedDates = useMemo<MarkedDates>(() => {
+    return buildNoFapCalendar(logs).reduce<MarkedDates>((acc, item) => {
+      const tone =
+        item.noFapStatus === 'relapse' || item.noPornStatus === 'relapse'
+          ? theme.colors.sealRed
+          : item.noFapStatus === 'clean' && item.noPornStatus === 'clean'
+            ? theme.colors.gold
+            : undefined;
+
+      if (tone) {
+        acc[item.date] = {
+          dots: [
+            {
+              key: tone,
+              color: tone,
+            },
+          ],
+        };
+      }
+
+      return acc;
+    }, {});
+  }, [logs]);
 
   return (
     <ScrollView
@@ -92,114 +122,98 @@ export default function NoFapScreen() {
       </Pressable>
 
       <View style={styles.heroCard}>
-        <Text style={styles.kicker}>NO FAP / NO PORN</Text>
-        <Text style={styles.title}>Streak tracker and recovery awareness</Text>
+        <Text style={styles.kicker}>{disciplineCopy.kicker}</Text>
+        <Text style={styles.title}>{disciplineCopy.title}</Text>
         <Text style={styles.body}>
-          No-fap streak: {state?.currentNoFapStreak ?? 0} days · No-porn streak: {state?.currentNoPornStreak ?? 0} days
+          {disciplineCopy.streakSummaryPrefix}: {state?.currentNoFapStreak ?? 0} days · No-porn streak: {state?.currentNoPornStreak ?? 0} days
         </Text>
       </View>
 
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>CURRENT NO FAP</Text>
-          <Text style={styles.statValue}>{state?.currentNoFapStreak ?? 0}</Text>
+      {!adultAccess ? (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Discipline Mode</Text>
+          <Text style={styles.body}>
+            This screen is simplified for under-18 profiles. Use workouts, daily quests, and recovery habits to build consistency.
+          </Text>
+          <PrimaryButton label="Open Workout Progress" onPress={() => router.push('/workout-progress' as Href)} />
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>BEST NO FAP</Text>
-          <Text style={styles.statValue}>{state?.longestNoFapStreak ?? 0}</Text>
-        </View>
-      </View>
+      ) : (
+        <>
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>{disciplineCopy.currentPrimaryLabel}</Text>
+              <Text style={styles.statValue}>{state?.currentNoFapStreak ?? 0}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>{disciplineCopy.bestPrimaryLabel}</Text>
+              <Text style={styles.statValue}>{state?.longestNoFapStreak ?? 0}</Text>
+            </View>
+          </View>
 
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>CURRENT NO PORN</Text>
-          <Text style={styles.statValue}>{state?.currentNoPornStreak ?? 0}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>BEST NO PORN</Text>
-          <Text style={styles.statValue}>{state?.longestNoPornStreak ?? 0}</Text>
-        </View>
-      </View>
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>CURRENT NO PORN</Text>
+              <Text style={styles.statValue}>{state?.currentNoPornStreak ?? 0}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>BEST NO PORN</Text>
+              <Text style={styles.statValue}>{state?.longestNoPornStreak ?? 0}</Text>
+            </View>
+          </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Today · {formatLocalDate()}</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Today · {formatLocalDate()}</Text>
 
-        <Text style={styles.groupLabel}>No Fap</Text>
-        <View style={styles.row}>
-          {(['clean', 'relapse', 'none'] as TrackerStatus[]).map((value) => (
-            <Pressable
-              key={`fap-${value}`}
-              style={[styles.chip, todayLog?.noFapStatus === value ? styles.chipSelected : null]}
-              onPress={() => setStatus('noFapStatus', value)}>
-              <Text style={styles.chipText}>{value}</Text>
-            </Pressable>
-          ))}
-        </View>
+            <Text style={styles.groupLabel}>{disciplineCopy.primaryHabitLabel}</Text>
+            <View style={styles.row}>
+              {(['clean', 'relapse', 'none'] as TrackerStatus[]).map((value) => (
+                <Pressable
+                  key={`fap-${value}`}
+                  style={[styles.chip, todayLog?.noFapStatus === value ? styles.chipSelected : null]}
+                  onPress={() => setStatus('noFapStatus', value)}>
+                  <Text style={styles.chipText}>{value}</Text>
+                </Pressable>
+              ))}
+            </View>
 
-        <Text style={styles.groupLabel}>No Porn</Text>
-        <View style={styles.row}>
-          {(['clean', 'relapse', 'none'] as TrackerStatus[]).map((value) => (
-            <Pressable
-              key={`porn-${value}`}
-              style={[styles.chip, todayLog?.noPornStatus === value ? styles.chipSelected : null]}
-              onPress={() => setStatus('noPornStatus', value)}>
-              <Text style={styles.chipText}>{value}</Text>
-            </Pressable>
-          ))}
-        </View>
+            <Text style={styles.groupLabel}>No Porn</Text>
+            <View style={styles.row}>
+              {(['clean', 'relapse', 'none'] as TrackerStatus[]).map((value) => (
+                <Pressable
+                  key={`porn-${value}`}
+                  style={[styles.chip, todayLog?.noPornStatus === value ? styles.chipSelected : null]}
+                  onPress={() => setStatus('noPornStatus', value)}>
+                  <Text style={styles.chipText}>{value}</Text>
+                </Pressable>
+              ))}
+            </View>
 
-        <TextInput
-          style={[styles.input, styles.multiline]}
-          multiline
-          placeholder="No-fap note"
-          placeholderTextColor={theme.colors.textMuted}
-          value={todayLog?.noFapNote ?? ''}
-          onChangeText={(text) => setTodayLog((current) => (current ? { ...current, noFapNote: text } : current))}
-        />
-        <TextInput
-          style={[styles.input, styles.multiline]}
-          multiline
-          placeholder="No-porn note"
-          placeholderTextColor={theme.colors.textMuted}
-          value={todayLog?.noPornNote ?? ''}
-          onChangeText={(text) => setTodayLog((current) => (current ? { ...current, noPornNote: text } : current))}
-        />
+            <TextInput
+              style={[styles.input, styles.multiline]}
+              multiline
+              placeholder={disciplineCopy.notePlaceholder}
+              placeholderTextColor={theme.colors.textMuted}
+              value={todayLog?.noFapNote ?? ''}
+              onChangeText={(text) => setTodayLog((current) => (current ? { ...current, noFapNote: text } : current))}
+            />
+            <TextInput
+              style={[styles.input, styles.multiline]}
+              multiline
+              placeholder="No-porn note"
+              placeholderTextColor={theme.colors.textMuted}
+              value={todayLog?.noPornNote ?? ''}
+              onChangeText={(text) => setTodayLog((current) => (current ? { ...current, noPornNote: text } : current))}
+            />
 
-        <PrimaryButton label="Save Tracker" onPress={saveTodayLog} />
-      </View>
+            <PrimaryButton label="Save Tracker" onPress={saveTodayLog} />
+          </View>
+        </>
+      )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Calendar</Text>
-        <Text style={styles.body}>Green means clean, red means relapse, muted means no log yet.</Text>
-        <View style={styles.legendRow}>
-          <View style={[styles.legendDot, styles.clean]} />
-          <Text style={styles.legendText}>clean</Text>
-          <View style={[styles.legendDot, styles.relapse]} />
-          <Text style={styles.legendText}>relapse</Text>
-          <View style={[styles.legendDot, styles.none]} />
-          <Text style={styles.legendText}>no log</Text>
-        </View>
-        <View style={styles.calendar}>
-          {calendar.map((item) => {
-            const status =
-              item.noFapStatus === 'relapse' || item.noPornStatus === 'relapse'
-                ? 'relapse'
-                : item.noFapStatus === 'clean' && item.noPornStatus === 'clean'
-                  ? 'clean'
-                  : 'none';
-            return (
-              <View key={item.date} style={styles.dayWrap}>
-                <View
-                  style={[
-                    styles.dayCell,
-                    status === 'clean' ? styles.clean : status === 'relapse' ? styles.relapse : styles.none,
-                  ]}
-                />
-                <Text style={styles.dayLabel}>{item.date.slice(-2)}</Text>
-              </View>
-            );
-          })}
-        </View>
+        <Text style={styles.body}>Gold marks clean days, red marks relapse days.</Text>
+        <AppCalendar markedDates={markedDates} current={formatLocalDate()} />
       </View>
     </ScrollView>
   );
@@ -266,14 +280,4 @@ const styles = StyleSheet.create({
   multiline: { minHeight: 90, textAlignVertical: 'top' },
   section: { gap: theme.spacing.md },
   sectionTitle: { color: theme.colors.textPrimary, fontSize: theme.font.lg, fontWeight: '800' },
-  legendRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, flexWrap: 'wrap' },
-  legendDot: { width: 14, height: 14, borderRadius: 4, borderWidth: 1, borderColor: theme.colors.border },
-  legendText: { color: theme.colors.textMuted, fontSize: theme.font.sm },
-  calendar: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
-  dayWrap: { width: '12%', minWidth: 34, alignItems: 'center', gap: 4 },
-  dayCell: { width: 28, height: 28, borderRadius: 6, borderWidth: 1, borderColor: theme.colors.border },
-  clean: { backgroundColor: theme.colors.success },
-  relapse: { backgroundColor: theme.colors.danger },
-  none: { backgroundColor: theme.colors.surfaceAlt },
-  dayLabel: { color: theme.colors.textMuted, fontSize: theme.font.sm },
 });

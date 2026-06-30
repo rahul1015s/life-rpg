@@ -18,6 +18,7 @@ import { getRecentUnlockedAchievements } from '../lib/achievementEngine';
 import { getTopActiveGoal } from '../lib/goalsEngine';
 import { getAchievements, getCustomQuests, getGoals, getProfile, getProgress } from '../lib/storage';
 import type { AchievementUnlock, CustomQuest, PersonalGoal, PlayerProfile, PlayerProgress } from '../lib/types';
+import { getDisciplineCopy } from '../lib/utils/profile';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -95,6 +96,8 @@ export default function ProfileScreen() {
   const achievementMap = new Map(achievementCatalog.map((item) => [item.id, item]));
   const topGoal = getTopActiveGoal(goals);
   const completedGoalsCount = goals.filter((goal) => goal.status === 'completed').length;
+  const profileInitial = profile.name.trim().charAt(0).toUpperCase() || 'P';
+  const disciplineCopy = getDisciplineCopy(profile.gender);
 
   return (
     <ScrollView
@@ -107,9 +110,13 @@ export default function ProfileScreen() {
 
       <View style={styles.heroCard}>
         <Text style={styles.kicker}>PROFILE</Text>
+        <View style={styles.avatarCircle}>
+          <Text style={styles.avatarLetter}>{profileInitial}</Text>
+        </View>
         <Text style={styles.title}>{profile.name}</Text>
         <RankBadge rank={getRankForLevel(progress.level)} />
         <Text style={styles.body}>Level {progress.level} • {progress.totalXP} total XP</Text>
+        <Text style={styles.body}>Gender: {profile.gender[0].toUpperCase() + profile.gender.slice(1)}</Text>
       </View>
 
       <View style={styles.metricCard}>
@@ -172,18 +179,6 @@ export default function ProfileScreen() {
             <Text style={styles.recentTitle}>Habit Calendar</Text>
             <Text style={styles.recentDate}>Month view for consistency and streak patterns.</Text>
           </Pressable>
-          <Pressable style={styles.recentCard} onPress={() => router.push('/checkins' as Href)}>
-            <Text style={styles.recentTitle}>Morning / Night Check-Ins</Text>
-            <Text style={styles.recentDate}>Track mood, energy, sleep, confidence, and focus.</Text>
-          </Pressable>
-          <Pressable style={styles.recentCard} onPress={() => router.push('/journal' as Href)}>
-            <Text style={styles.recentTitle}>Reflection Journal</Text>
-            <Text style={styles.recentDate}>Short notes tied to each day.</Text>
-          </Pressable>
-          <Pressable style={styles.recentCard} onPress={() => router.push('/focus-mode' as Href)}>
-            <Text style={styles.recentTitle}>Focus Mode</Text>
-            <Text style={styles.recentDate}>Timed study, coding, writing, and deep-work sessions.</Text>
-          </Pressable>
           <Pressable style={styles.recentCard} onPress={() => router.push('/milestones' as Href)}>
             <Text style={styles.recentTitle}>Milestones / Vision</Text>
             <Text style={styles.recentDate}>30-day, 90-day, and 1-year direction.</Text>
@@ -197,8 +192,8 @@ export default function ProfileScreen() {
             <Text style={styles.recentDate}>Export and import your app data.</Text>
           </Pressable>
           <Pressable style={styles.recentCard} onPress={() => router.push('/no-fap' as Href)}>
-            <Text style={styles.recentTitle}>No Fap / No Porn Tracker</Text>
-            <Text style={styles.recentDate}>Track clean days, relapses, streaks, and calendar patterns.</Text>
+            <Text style={styles.recentTitle}>{disciplineCopy.trackerShortcutTitle}</Text>
+            <Text style={styles.recentDate}>{disciplineCopy.trackerShortcutDescription}</Text>
           </Pressable>
           <Pressable style={styles.recentCard} onPress={() => router.push('/dopamine-control' as Href)}>
             <Text style={styles.recentTitle}>Dopamine Control</Text>
@@ -207,10 +202,6 @@ export default function ProfileScreen() {
           <Pressable style={styles.recentCard} onPress={() => router.push('/sleep-recovery' as Href)}>
             <Text style={styles.recentTitle}>Sleep Recovery</Text>
             <Text style={styles.recentDate}>Monitor sleep hours, quality, caffeine timing, and recovery debt.</Text>
-          </Pressable>
-          <Pressable style={styles.recentCard} onPress={() => router.push('/relapse-analysis' as Href)}>
-            <Text style={styles.recentTitle}>Relapse Analysis</Text>
-            <Text style={styles.recentDate}>Log triggers, high-risk times, and recovery plans after slips.</Text>
           </Pressable>
           <Pressable style={styles.recentCard} onPress={() => router.push('/workout-progress' as Href)}>
             <Text style={styles.recentTitle}>Workout Progress</Text>
@@ -257,6 +248,21 @@ const styles = StyleSheet.create({
   title: {
     color: theme.colors.textPrimary,
     fontSize: theme.font.xl,
+    fontWeight: '900',
+  },
+  avatarCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: theme.colors.accent,
+  },
+  avatarLetter: {
+    color: theme.colors.accent,
+    fontSize: 28,
     fontWeight: '900',
   },
   body: {

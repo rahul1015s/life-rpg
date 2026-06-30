@@ -1,156 +1,217 @@
 # Life RPG
 
-Life RPG is a mobile self-improvement app built with Expo and React Native. It turns daily habits into a small role-playing system with quests, XP, levels, ranks, stats, achievements, goals, and personal progress tracking.
+Life RPG is a self-improvement app built with Expo, React Native, and Expo Router. It turns discipline, habits, recovery, and personal growth into an RPG-style progression loop with quests, XP, stats, streaks, milestones, and unlocks.
 
-## What this app does
+## Core idea
 
-The app gives you a daily structure for building better habits. Each day, it generates a set of quests based on your goals, experience level, and chosen focus areas. Completing quests earns XP and improves your stats, which helps you level up and unlock achievements.
+The app treats real-life consistency like game progression:
 
-It also supports:
+- complete daily quests
+- earn XP and level up
+- improve core stats like discipline, focus, stamina, confidence, and strength
+- track streak-based systems like NoFap and workouts
+- unlock achievements, titles, and theme-style rewards
+- recover from missed days using punishment and recovery prompts
 
-- personal goal tracking
-- custom quest creation
-- hair care and minoxidil tracking
-- history and analytics
-- local persistence so progress stays on the device
+## Main features
 
-## Screens
+### Dashboard command center
 
-### Onboarding
-- create a player profile
-- choose a main goal such as body, confidence, coding, study, career, writing, or all-rounder
-- choose beginner, normal, or serious experience level
-- set wake time and sleep target
-- enable hair treatment tracking and add a start date
+The dashboard is the home base of the app. It now includes:
 
-### Dashboard
-- shows the active profile and level/rank information
-- displays current streak and longest streak
-- shows XP bar and next level progress
-- presents daily main quests and bonus quests
-- links to history, achievements, profile, goals, custom quests, and hair care
-- opens level-up, achievement, and goal-completion modals after progress
-
-### Goals
-- create personal goals with categories and target dates
-- assign bonus XP to completed goals
-- link goals to relevant quests
-- track progress percent and complete goals when all linked quests are done
-- view active versus completed goals
-
-### Custom Quests
-- create your own quests with title, description, category, difficulty, XP, timing, and notes
-- choose affected stats
-- mark quests active or inactive
-- reuse them in the daily quest rotation
-
-### Achievements
-- view a catalog of unlockable achievements
-- track progress toward each achievement
-- see unlock status and reward details
-
-### History and analytics
-- review daily quest completion history
-- see monthly summaries
-- view XP tracking across today, week, month, and all time
-- inspect streak progress and best-performing days
-- view hair-log timeline when hair tracking is enabled
-
-### Profile
-- shows the player name, rank, level, and total XP
-- summarizes unlocked achievements
-- shows active and completed goals
-- lists recent achievement unlocks
-- displays custom quest count
-
-### Hair care tracker
-- available when minoxidil or hair treatment tracking is enabled
-- shows a 30-day consistency grid
-- tracks morning and night dose status
-- logs progress photos from the camera
-- stores photos locally and shows them in the photo log
-
-## Core features
+- persistent bottom navigation across the main app
+- quick access to NoFap, workout progress, calendar, and achievements
+- quest streak and NoFap streak at the top
+- daily main quests and bonus quests
+- punishment preview when important quests are left incomplete
+- boss battle progression for weekly, 30-day, and 90-day discipline milestones
+- reward inventory previews for unlockable titles and themes
+- avatar evolution summary based on your strongest stats
+- shared calendar-based NoFap preview
+- fast entry points to goals, milestones, reviews, achievements, history, and insights
 
 ### Daily quest system
-- generates 5 main quests and 3 bonus quests each day
-- uses a built-in quest catalog plus custom quests
-- avoids repeating the same quest too often by tracking recent rotations
-- balances categories around the player's selected main goal
-- respects one-time quests so they only appear until completed
-- supports hair care quests when minoxidil tracking is enabled
 
-### Progression loop
-- quest completion grants XP
-- XP increases level and fills the XP bar
-- levels change the rank name
-- completing quests also updates stats such as strength, stamina, focus, discipline, charisma, confidence, creativity, appearance, communication, and style
-- streaks and long-term progress are stored and displayed
+- generates daily quests based on your profile and goals
+- supports main quests and bonus quests
+- tracks completion history and streaks
+- rewards XP and stat gains on completion
+- includes custom quest support
 
-### Achievement system
-- unlocks achievements for first quests, streak milestones, XP milestones, category milestones, level milestones, and men’s health goals
-- rewards extra XP and stat boosts when unlocked
-- shows progress bars and unlock state throughout the app
+### Leveling and progression
 
-### Goal and reward system
-- create goals tied to specific quests
-- track progress based on linked quest completion
-- award bonus XP when a goal is completed
-- surface completed goals in the dashboard and profile views
+- XP-based leveling system
+- rank progression
+- stat growth across strength, stamina, focus, discipline, charisma, confidence, creativity, appearance, communication, and style
+- achievement unlock rewards
+- goal-completion rewards
 
-### Customization and flexibility
-- create custom quests for your own routine
-- choose categories and difficulty levels
-- adjust repeat type between daily, weekly, and one-time
-- enable or disable quests without deleting them
+### NoFap and discipline tracking
 
-### Data and persistence
-- stores profile, progress, quests, history, achievements, goals, custom quests, hair logs, and men’s health logs locally
-- uses AsyncStorage for reliable local persistence
+- daily NoFap and NoPorn logging
+- current and best streak tracking
+- calendar view for streak consistency
+- quick "mark clean" action directly from the dashboard
+- relapse-aware tracking that feeds recovery features
+- dedicated NoFap consistency calendar
+- under-18 simplified discipline view using DOB-based gating
 
-## Small but useful details
+### Workout progress
 
-- pull-to-refresh works on several screens
-- loading states appear while data is being loaded
-- modals show level-ups, achievement unlocks, and goal completion rewards
-- quest detail modals provide extra context for each task
-- the UI uses a stylized game-like presentation with cards, badges, and progress bars
-- back navigation is built into each detail screen
-- the app supports both mobile and web targets through Expo
+- log strength, cardio, mobility, and sports sessions
+- choose morning, evening, or both for session timing
+- view a workout calendar with completed days marked in green
+- track duration, sets, reps, weight, effort, and notes
+- attach workout progress photos
+- local image saving
+- workout summaries on dashboard and workout screen
+
+### Habit and discipline calendar
+
+- monthly habit consistency calendar
+- shared calendar-based NoFap board
+- quest activity intensity view
+- active-day and strong-day summaries
+
+### Boss battles, punishment, and rewards
+
+- weekly milestone boss battle
+- 30-day NoFap boss battle
+- 90-day long-form discipline boss battle
+- punishment preview when quests are missed
+- recovery/atonement suggestions
+- inventory-style unlock previews for titles and themes
+- avatar evolution messaging based on build direction
+
+### Goals and milestones
+
+- long-term personal goals
+- progress percent tracking
+- goal rewards
+- milestone planning for 30-day, 90-day, and 365-day arcs
+- active and completed milestone states
+
+### Achievements
+
+- quest milestones
+- streak milestones
+- XP milestones
+- category milestones
+- level milestones
+- men’s health milestones
+
+### Insights and recovery systems
+
+- smart quest suggestions
+- recovery suggestions after weak days
+- weekly review support
+- dopamine-control, sleep-recovery, and related self-regulation screens already included in the app
+
+### Hair care tracking
+
+- optional minoxidil / hair care tracking
+- morning and night application logging
+- local progress photo capture
+- hair consistency streaks
+
+### Notifications and widgets
+
+- local quest reminder support through `expo-notifications`
+- reminder flow styled in-app as quest scroll / quest log prompts
+- DOB-aware reminder settings with per-reminder time selection
+
+Important note:
+
+- Android home-screen widget work is intentionally deferred until a real prebuild/dev-client widget workflow is introduced
+- Expo can schedule reminders, but it does not fully block all phone notifications from JavaScript alone
+
+## Screens currently in the app
+
+- onboarding
+- dashboard
+- achievements
+- goals
+- custom quests
+- history
+- profile
+- haircare
+- milestones
+- insights
+- weekly review
+- habit calendar
+- no fap
+- workout progress
+- sleep recovery
+- dopamine control
+- settings
+
+## Data stored locally
+
+The app uses AsyncStorage and local device files for:
+
+- profile
+- progress
+- daily quests
+- history
+- completion log
+- achievements
+- goals
+- custom quests
+- men’s health state and logs
+- milestones
+- dopamine logs
+- sleep entries
+- workout entries
+- hair logs and locally saved images
 
 ## Tech stack
 
+- Expo SDK 56
 - Expo Router
 - React Native
 - TypeScript
 - AsyncStorage
 - Expo Image Picker
 - Expo File System
+- Expo Notifications
+- React Native Calendars
+- React Native Community DateTimePicker
 - React Native Reanimated
-- Zustand-style app state flow through local storage helpers
 
 ## Getting started
 
 1. Install dependencies
 
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 
 2. Start the app
 
-   ```bash
-   npm start
-   ```
+```bash
+npm start
+```
 
-3. Open the app in Expo Go, an emulator, or a browser preview.
+3. Run on a platform
+
+```bash
+npm run android
+npm run ios
+npm run web
+```
 
 ## Development notes
 
-- main app entry is routed through the app folder
-- screens are organized by purpose such as dashboard, goals, achievements, history, profile, and hair care
-- the app logic is split into reusable modules under the lib folder for quests, achievements, goals, analytics, storage, and hair care
+- routing is file-based through the `app/` directory
+- business logic is organized under `lib/`
+- UI components are split into reusable `components/` building blocks
+- notification support was added using Expo v56-compatible packages and local scheduling
 
-## Project idea
+## Roadmap ideas
 
-Life RPG is designed as a habit-building game where routine becomes visible, rewarding, and motivating. It combines journaling, progress tracking, and gamified discipline into one app experience.
+These ideas fit the project direction but are not fully implemented yet:
+
+- guild / party sharing with friends
+- leaderboard and social streak comparison
+- richer cosmetic theme switching tied to unlocks
+- more advanced avatar evolution visuals and cutscenes

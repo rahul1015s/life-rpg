@@ -1,27 +1,29 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { type Href, usePathname, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { borders, colors, spacing } from '../../theme/tokens';
 import { fontFamily } from '../../theme/typography';
 
-const items: { label: string; href: Href }[] = [
+const items: { label: string; href: string }[] = [
   { label: 'HOME', href: '/dashboard' },
-  { label: 'ACHIEVE', href: '/achievements' },
-  { label: 'GOALS', href: '/goals' },
-  { label: 'QUESTS', href: '/custom-quests' },
-  { label: 'PROFILE', href: '/profile' },
+  { label: 'NOFAP', href: '/no-fap' },
+  { label: 'WORK', href: '/workout-progress' },
+  { label: 'CAL', href: '/habit-calendar' },
+  { label: 'LOOT', href: '/achievements' },
 ];
 
 export function BottomNav() {
   const router = useRouter();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
       {items.map((item) => {
-        const active = pathname === item.href;
+        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
-          <Pressable key={item.label} style={styles.item} onPress={() => router.push(item.href)}>
+          <Pressable key={item.label} style={styles.item} onPress={() => router.push(item.href as Href)}>
             <View style={[styles.dot, active && styles.dotActive]} />
             <Text style={[styles.label, active && styles.labelActive]}>{item.label}</Text>
           </Pressable>
@@ -43,7 +45,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.xs,
   },
   dot: {
     width: 5,

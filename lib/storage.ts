@@ -3,28 +3,26 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
   AchievementUnlock,
   AppExportData,
+  AppSettings,
   CustomQuest,
-    DailyQuest,
-    DailyCheckIn,
-    DopamineLog,
-    FocusSession,
+  DailyQuest,
+  DopamineLog,
   HairLogEntry,
   HistoryEntry,
   MilestoneVision,
-    MensHealthLog,
-    MensHealthState,
-    PersonalGoal,
-    PlayerProfile,
-    PlayerProgress,
-    QuestCompletionLogEntry,
-    QuestRotationEntry,
-    RelapseReflection,
-    ReflectionJournalEntry,
-    SleepRecoveryEntry,
-    WorkoutEntry,
-    WeeklyReview,
-  } from './types';
+  MensHealthLog,
+  MensHealthState,
+  PersonalGoal,
+  PlayerProfile,
+  PlayerProgress,
+  QuestCompletionLogEntry,
+  QuestRotationEntry,
+  SleepRecoveryEntry,
+  WorkoutEntry,
+  WeeklyReview,
+} from './types';
 import { normalizeCompletionLogEntry, normalizeDailyQuest } from './questUtils';
+import { normalizeProfileGender } from './utils/profile';
 
 export const storageKeys = {
   profile: 'lifeRPG:profile',
@@ -40,15 +38,22 @@ export const storageKeys = {
   mensHealthState: 'lifeRPG:mensHealthState',
   mensHealthLogs: 'lifeRPG:mensHealthLogs',
   weeklyReviews: 'lifeRPG:weeklyReviews',
-  dailyCheckIns: 'lifeRPG:dailyCheckIns',
-  journalEntries: 'lifeRPG:journalEntries',
-  focusSessions: 'lifeRPG:focusSessions',
   milestones: 'lifeRPG:milestones',
   dopamineLogs: 'lifeRPG:dopamineLogs',
   sleepEntries: 'lifeRPG:sleepEntries',
   workoutEntries: 'lifeRPG:workoutEntries',
-  relapseReflections: 'lifeRPG:relapseReflections',
+  settings: 'lifeRPG:settings',
 } as const;
+
+const defaultSettings: AppSettings = {
+  dobPromptDismissedAt: null,
+  energyMode: 'standard',
+  notifications: {
+    dailyQuest: { enabled: false, hour: 20, minute: 0 },
+    noFapCheckIn: { enabled: false, hour: 22, minute: 0 },
+    focusWorkout: { enabled: false, hour: 18, minute: 30 },
+  },
+};
 
 async function getItem<T>(key: string): Promise<T | null> {
   const rawValue = await AsyncStorage.getItem(key);
@@ -65,7 +70,26 @@ async function setItem<T>(key: string, value: T): Promise<void> {
 }
 
 export async function getProfile(): Promise<PlayerProfile | null> {
-  return getItem<PlayerProfile>(storageKeys.profile);
+  const profile = await getItem<
+    Partial<PlayerProfile> & { dob?: string | null; mainGoal?: PlayerProfile['mainGoals'][number] }
+  >(storageKeys.profile);
+  if (!profile) {
+    return null;
+  }
+
+  const normalizedMainGoals =
+    Array.isArray(profile.mainGoals) && profile.mainGoals.length > 0
+      ? profile.mainGoals
+      : profile.mainGoal
+        ? [profile.mainGoal]
+        : ['all-rounder'];
+
+  return {
+    ...profile,
+    gender: normalizeProfileGender(profile.gender),
+    dob: profile.dob ?? '',
+    mainGoals: normalizedMainGoals,
+  } as PlayerProfile;
 }
 
 export async function setProfile(profile: PlayerProfile): Promise<void> {
@@ -170,30 +194,6 @@ export async function setWeeklyReviews(entries: WeeklyReview[]): Promise<void> {
   await setItem(storageKeys.weeklyReviews, entries);
 }
 
-export async function getDailyCheckIns(): Promise<DailyCheckIn[]> {
-  return (await getItem<DailyCheckIn[]>(storageKeys.dailyCheckIns)) ?? [];
-}
-
-export async function setDailyCheckIns(entries: DailyCheckIn[]): Promise<void> {
-  await setItem(storageKeys.dailyCheckIns, entries);
-}
-
-export async function getJournalEntries(): Promise<ReflectionJournalEntry[]> {
-  return (await getItem<ReflectionJournalEntry[]>(storageKeys.journalEntries)) ?? [];
-}
-
-export async function setJournalEntries(entries: ReflectionJournalEntry[]): Promise<void> {
-  await setItem(storageKeys.journalEntries, entries);
-}
-
-export async function getFocusSessions(): Promise<FocusSession[]> {
-  return (await getItem<FocusSession[]>(storageKeys.focusSessions)) ?? [];
-}
-
-export async function setFocusSessions(entries: FocusSession[]): Promise<void> {
-  await setItem(storageKeys.focusSessions, entries);
-}
-
 export async function getMilestones(): Promise<MilestoneVision[]> {
   return (await getItem<MilestoneVision[]>(storageKeys.milestones)) ?? [];
 }
@@ -219,19 +219,45 @@ export async function setSleepEntries(entries: SleepRecoveryEntry[]): Promise<vo
 }
 
 export async function getWorkoutEntries(): Promise<WorkoutEntry[]> {
-  return (await getItem<WorkoutEntry[]>(storageKeys.workoutEntries)) ?? [];
+  const entries = (await getItem<Array<WorkoutEntry & { sessionTime?: WorkoutEntry['sessionTime'] }>>(
+    storageKeys.workoutEntries
+  )) ?? [];
+
+  return entries.map((entry) => ({
+    ...entry,
+    sessionTime: entry.sessionTime ?? 'both',
+  }));
 }
 
 export async function setWorkoutEntries(entries: WorkoutEntry[]): Promise<void> {
   await setItem(storageKeys.workoutEntries, entries);
 }
 
-export async function getRelapseReflections(): Promise<RelapseReflection[]> {
-  return (await getItem<RelapseReflection[]>(storageKeys.relapseReflections)) ?? [];
+export async function getSettings(): Promise<AppSettings> {
+  const stored = await getItem<Partial<AppSettings>>(storageKeys.settings);
+
+  return {
+    dobPromptDismissedAt: stored?.dobPromptDismissedAt ?? defaultSettings.dobPromptDismissedAt,
+    energyMode: stored?.energyMode ?? defaultSettings.energyMode,
+    notifications: {
+      dailyQuest: {
+        ...defaultSettings.notifications.dailyQuest,
+        ...stored?.notifications?.dailyQuest,
+      },
+      noFapCheckIn: {
+        ...defaultSettings.notifications.noFapCheckIn,
+        ...stored?.notifications?.noFapCheckIn,
+      },
+      focusWorkout: {
+        ...defaultSettings.notifications.focusWorkout,
+        ...stored?.notifications?.focusWorkout,
+      },
+    },
+  };
 }
 
-export async function setRelapseReflections(entries: RelapseReflection[]): Promise<void> {
-  await setItem(storageKeys.relapseReflections, entries);
+export async function setSettings(settings: AppSettings): Promise<void> {
+  await setItem(storageKeys.settings, settings);
 }
 
 export async function exportAppData(): Promise<AppExportData> {
@@ -249,14 +275,11 @@ export async function exportAppData(): Promise<AppExportData> {
     mensHealthState,
     mensHealthLogs,
     weeklyReviews,
-    dailyCheckIns,
-    journalEntries,
-    focusSessions,
     milestones,
     dopamineLogs,
     sleepEntries,
     workoutEntries,
-    relapseReflections,
+    settings,
   ] = await Promise.all([
     getProfile(),
     getProgress(),
@@ -271,14 +294,11 @@ export async function exportAppData(): Promise<AppExportData> {
     getMensHealthState(),
     getMensHealthLogs(),
     getWeeklyReviews(),
-    getDailyCheckIns(),
-    getJournalEntries(),
-    getFocusSessions(),
     getMilestones(),
     getDopamineLogs(),
     getSleepEntries(),
     getWorkoutEntries(),
-    getRelapseReflections(),
+    getSettings(),
   ]);
 
   return {
@@ -298,14 +318,11 @@ export async function exportAppData(): Promise<AppExportData> {
       mensHealthState,
       mensHealthLogs,
       weeklyReviews,
-      dailyCheckIns,
-      journalEntries,
-      focusSessions,
       milestones,
       dopamineLogs,
       sleepEntries,
       workoutEntries,
-      relapseReflections,
+      settings,
     },
   };
 }
@@ -325,13 +342,10 @@ export async function importAppData(data: AppExportData): Promise<void> {
     setItem(storageKeys.mensHealthState, data.payload.mensHealthState),
     setItem(storageKeys.mensHealthLogs, data.payload.mensHealthLogs),
     setItem(storageKeys.weeklyReviews, data.payload.weeklyReviews),
-    setItem(storageKeys.dailyCheckIns, data.payload.dailyCheckIns),
-    setItem(storageKeys.journalEntries, data.payload.journalEntries),
-    setItem(storageKeys.focusSessions, data.payload.focusSessions),
     setItem(storageKeys.milestones, data.payload.milestones),
     setItem(storageKeys.dopamineLogs, data.payload.dopamineLogs ?? []),
     setItem(storageKeys.sleepEntries, data.payload.sleepEntries ?? []),
     setItem(storageKeys.workoutEntries, data.payload.workoutEntries ?? []),
-    setItem(storageKeys.relapseReflections, data.payload.relapseReflections ?? []),
+    setItem(storageKeys.settings, data.payload.settings ?? defaultSettings),
   ]);
 }
