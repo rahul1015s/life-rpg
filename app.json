@@ -39,7 +39,8 @@
           "cameraPermission": "Allow Life RPG to use your camera so you can capture hair and workout progress photos."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
