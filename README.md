@@ -180,6 +180,9 @@ The app uses AsyncStorage and local device files for:
 
 ## Getting started
 
+This app has no external API dependencies and requires no `.env` file — everything is stored
+locally via AsyncStorage and the device filesystem (see "Data stored locally" above).
+
 1. Install dependencies
 
 ```bash
