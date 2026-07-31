@@ -98,7 +98,7 @@ export function buildHabitCalendar(
 }
 
 export function buildCategoryInsights(completionLog: QuestCompletionLogEntry[]): CategoryInsight[] {
-  const groups: Array<{ label: string; categories: QuestCategory[] }> = [
+  const groups: { label: string; categories: QuestCategory[] }[] = [
     { label: 'Body', categories: ['fitness', 'health', 'hygiene', 'appearance', 'haircare', 'style'] },
     { label: 'Study', categories: ['study', 'coding', 'writing', 'career'] },
     { label: 'Confidence', categories: ['confidence', 'appearance', 'style'] },
@@ -312,14 +312,14 @@ export function buildQuestPunishmentPreview(
   };
 }
 
-export function buildBossBattles(currentStreak: number): Array<{
+export function buildBossBattles(currentStreak: number): {
   id: string;
   label: string;
   target: number;
   progress: number;
   defeated: boolean;
   reward: string;
-}> {
+}[] {
   return [
     { id: 'weekly-gate', label: 'Weekly Gatekeeper', target: 7, reward: 'Scroll badge + discipline surge' },
     { id: 'month-beast', label: '30-Day Shadow Beast', target: 30, reward: 'Boss defeated badge + cutscene moment' },
@@ -331,13 +331,13 @@ export function buildBossBattles(currentStreak: number): Array<{
   }));
 }
 
-export function buildRewardInventory(totalXP: number, currentStreak: number): Array<{
+export function buildRewardInventory(totalXP: number, currentStreak: number): {
   id: string;
   label: string;
   type: 'title' | 'theme';
   unlocked: boolean;
   requirement: string;
-}> {
+}[] {
   return [
     {
       id: 'title-initiate',

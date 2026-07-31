@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { type Href, usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { theme } from '../../constants/theme';
 import { borders, colors, spacing } from '../../theme/tokens';
 import { fontFamily } from '../../theme/typography';
 
@@ -50,7 +51,7 @@ const styles = StyleSheet.create({
   dot: {
     width: 5,
     height: 5,
-    borderRadius: 999,
+    borderRadius: theme.radius.full,
     backgroundColor: 'transparent',
   },
   dotActive: {

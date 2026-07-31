@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 320,
     height: 320,
-    borderRadius: 999,
+    borderRadius: theme.radius.full,
     backgroundColor: 'rgba(201, 162, 39, 0.12)',
   },
   card: {

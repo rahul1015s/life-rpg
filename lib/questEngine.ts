@@ -39,7 +39,6 @@ import type {
   GoalRewardResult,
   HairLogEntry,
   HistoryEntry,
-  PersonalGoal,
   PlayerProfile,
   PlayerProgress,
   QuestCategory,
@@ -151,15 +150,6 @@ function createLockedQuests(quests: DailyQuest[], locked: boolean): DailyQuest[]
 
 function pickRandom<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
-}
-
-function shuffle<T>(items: T[]): T[] {
-  const next = [...items];
-  for (let index = next.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
-  }
-  return next;
 }
 
 function mergeHistoryIfMissing(history: HistoryEntry[], quests: DailyQuest[]): HistoryEntry[] {

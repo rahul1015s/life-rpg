@@ -219,7 +219,7 @@ export async function setSleepEntries(entries: SleepRecoveryEntry[]): Promise<vo
 }
 
 export async function getWorkoutEntries(): Promise<WorkoutEntry[]> {
-  const entries = (await getItem<Array<WorkoutEntry & { sessionTime?: WorkoutEntry['sessionTime'] }>>(
+  const entries = (await getItem<(WorkoutEntry & { sessionTime?: WorkoutEntry['sessionTime'] })[]>(
     storageKeys.workoutEntries
   )) ?? [];
 

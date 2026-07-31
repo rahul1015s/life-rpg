@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { rankMeta } from '../../constants/theme';
+import { rankMeta, theme } from '../../constants/theme';
 import type { RankName } from '../../lib/types';
 import { colors } from '../../theme/tokens';
 import { fontFamily } from '../../theme/typography';
@@ -36,7 +36,7 @@ export function RankSeal({ rank, size = 'md' }: RankSealProps) {
 const styles = StyleSheet.create({
   outer: {
     borderWidth: 2.5,
-    borderRadius: 999,
+    borderRadius: theme.radius.full,
     alignItems: 'center',
     justifyContent: 'center',
     transform: [{ rotate: '-6deg' }],
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     bottom: 4,
     left: 4,
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: theme.radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },

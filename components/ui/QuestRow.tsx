@@ -2,6 +2,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { categoryLabels, getDifficultyLabel } from '../../lib/questUtils';
 import type { DailyQuest } from '../../lib/types';
+import { theme } from '../../constants/theme';
 import { borders, colors, spacing } from '../../theme/tokens';
 import { fontFamily, typeScale } from '../../theme/typography';
 import { CategoryTag } from './CategoryTag';
@@ -77,7 +78,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderWidth: 2,
     borderColor: colors.parchmentDim,
-    borderRadius: 999,
+    borderRadius: theme.radius.full,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,

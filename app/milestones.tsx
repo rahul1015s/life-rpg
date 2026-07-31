@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   input: { backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.border, color: theme.colors.textPrimary, paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.md, fontSize: theme.font.md },
   multiline: { minHeight: 120, textAlignVertical: 'top' },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
-  chip: { paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm, borderRadius: 999, backgroundColor: theme.colors.surfaceAlt, borderWidth: 1, borderColor: theme.colors.border },
+  chip: { paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm, borderRadius: theme.radius.full, backgroundColor: theme.colors.surfaceAlt, borderWidth: 1, borderColor: theme.colors.border },
   chipSelected: { backgroundColor: theme.colors.primary, borderColor: theme.colors.accent },
   chipText: { color: theme.colors.textPrimary, fontSize: theme.font.sm },
   actions: { flexDirection: 'row', gap: theme.spacing.md },

@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   },
   track: {
     height: 10,
-    borderRadius: 999,
+    borderRadius: theme.radius.full,
     backgroundColor: theme.colors.background,
     overflow: 'hidden',
   },

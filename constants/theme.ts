@@ -22,6 +22,7 @@ export const theme = {
     sm: 0,
     md: 0,
     lg: 0,
+    full: 999,
   },
   font: {
     sm: typeScale.sm,

@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   goalMeta: { color: theme.colors.textMuted, fontSize: theme.font.sm },
   track: {
     height: 12,
-    borderRadius: 999,
+    borderRadius: theme.radius.full,
     backgroundColor: theme.colors.surfaceAlt,
     overflow: 'hidden',
   },
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: theme.spacing.sm,
-    borderRadius: 999,
+    borderRadius: theme.radius.full,
     backgroundColor: theme.colors.surfaceAlt,
     borderWidth: 1,
     borderColor: theme.colors.border,
