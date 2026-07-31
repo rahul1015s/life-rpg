@@ -18,6 +18,21 @@ Notifications.setNotificationHandler({
 
 const QUEST_REMINDER_CHANNEL = 'quest-reminders';
 
+export const reminderIds = {
+  dailyQuest: 'daily-quest-reminder',
+  noFapCheckIn: 'nofap-checkin-reminder',
+  focusWorkout: 'focus-workout-reminder',
+} as const;
+
+export type ReminderId = (typeof reminderIds)[keyof typeof reminderIds];
+
+// Where a tapped notification should deep-link to. Keys must stay in sync with reminderIds above.
+export const reminderRoutes: Record<ReminderId, string> = {
+  [reminderIds.dailyQuest]: '/dashboard',
+  [reminderIds.noFapCheckIn]: '/no-fap',
+  [reminderIds.focusWorkout]: '/workout-progress',
+};
+
 export async function requestNotificationPermission(): Promise<boolean> {
   const existingPermission = await Notifications.getPermissionsAsync();
   let finalStatus = existingPermission.status;

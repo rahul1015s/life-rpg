@@ -19,6 +19,7 @@ import { theme } from '../constants/theme';
 import {
   cancelReminder,
   getReminderCopy,
+  reminderIds,
   requestNotificationPermission,
   scheduleDailyReminder,
 } from '../lib/notifications/scheduleQuestReminders';
@@ -45,12 +46,6 @@ const reminderLabels: Record<ReminderKey, { title: string; note: string; reminde
     note: 'Optional recovery nudge for training blocks.',
     reminderType: 'focusWorkout',
   },
-};
-
-const reminderIds: Record<ReminderKey, string> = {
-  dailyQuest: 'daily-quest-reminder',
-  noFapCheckIn: 'nofap-checkin-reminder',
-  focusWorkout: 'focus-workout-reminder',
 };
 
 export default function SettingsScreen() {
