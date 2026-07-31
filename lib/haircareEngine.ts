@@ -134,3 +134,19 @@ export async function saveHairPhotoToLocalDirectory(
 ): Promise<string> {
   return saveImageToLocalDirectory(sourceUri, 'hairlog', date);
 }
+
+// Best-effort cleanup: a missing or already-removed file should not block the caller.
+export function deleteLocalImage(uri: string | null | undefined): void {
+  if (!uri) {
+    return;
+  }
+
+  try {
+    const file = new File(uri);
+    if (file.exists) {
+      file.delete();
+    }
+  } catch {
+    // Ignore -- the file may already be gone, or the uri may not be a local file.
+  }
+}

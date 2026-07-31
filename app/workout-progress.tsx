@@ -9,7 +9,7 @@ import { AppCalendar } from '../components/AppCalendar';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { theme } from '../constants/theme';
 import { summarizeWorkoutProgress } from '../lib/growthEngine';
-import { getLocalDateString, saveImageToLocalDirectory } from '../lib/haircareEngine';
+import { deleteLocalImage, getLocalDateString, saveImageToLocalDirectory } from '../lib/haircareEngine';
 import { getProfile, getWorkoutEntries, setWorkoutEntries } from '../lib/storage';
 import type { WorkoutEntry } from '../lib/types';
 
@@ -100,7 +100,12 @@ export default function WorkoutProgressScreen() {
       }
 
       const savedUri = await saveImageToLocalDirectory(result.assets[0].uri, 'workout', draft.date);
+      const previousImageUri = draft.imageUri;
       setDraft((current) => ({ ...current, imageUri: savedUri }));
+
+      if (previousImageUri && previousImageUri !== savedUri) {
+        deleteLocalImage(previousImageUri);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to save workout image.';
       Alert.alert('Image save failed', message);

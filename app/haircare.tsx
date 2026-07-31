@@ -16,6 +16,7 @@ import { HairLogEntry } from '../components/HairLogEntry';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { theme } from '../constants/theme';
 import {
+  deleteLocalImage,
   getCurrentFullDoseStreak,
   getDaysSinceStart,
   getEntryForDate,
@@ -156,6 +157,7 @@ export default function HaircareScreen() {
       const today = getLocalDateString();
       const savedUri = await saveHairPhotoToLocalDirectory(result.assets[0].uri, today);
       const currentEntry = getEntryForDate(entries, today);
+      const previousPhotoUri = currentEntry.photoUri;
       const nextEntries = upsertHairLogEntry(entries, {
         ...currentEntry,
         date: today,
@@ -164,6 +166,10 @@ export default function HaircareScreen() {
 
       await setHairLog(nextEntries);
       setEntries(nextEntries);
+
+      if (previousPhotoUri && previousPhotoUri !== savedUri) {
+        deleteLocalImage(previousPhotoUri);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to save photo.';
       Alert.alert('Photo log failed', message);
