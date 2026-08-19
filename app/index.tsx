@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 
 import { theme } from '../constants/theme';
-import { getProfile } from '../lib/storage';
+import { getProfile, getWelcomeSeen } from '../lib/storage';
 
 export default function IndexScreen() {
   const router = useRouter();
@@ -12,12 +12,17 @@ export default function IndexScreen() {
     let isMounted = true;
 
     async function bootstrap() {
-      const profile = await getProfile();
+      const [profile, welcomeSeen] = await Promise.all([getProfile(), getWelcomeSeen()]);
       if (!isMounted) {
         return;
       }
 
-      router.replace((profile ? '/dashboard' : '/onboarding') as Href);
+      if (profile) {
+        router.replace('/dashboard' as Href);
+        return;
+      }
+
+      router.replace((welcomeSeen ? '/onboarding' : '/welcome') as Href);
     }
 
     bootstrap();

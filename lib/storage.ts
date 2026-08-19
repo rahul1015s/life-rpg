@@ -43,6 +43,7 @@ export const storageKeys = {
   sleepEntries: 'lifeRPG:sleepEntries',
   workoutEntries: 'lifeRPG:workoutEntries',
   settings: 'lifeRPG:settings',
+  welcomeSeen: 'lifeRPG:welcomeSeen',
 } as const;
 
 const defaultSettings: AppSettings = {
@@ -258,6 +259,14 @@ export async function getSettings(): Promise<AppSettings> {
 
 export async function setSettings(settings: AppSettings): Promise<void> {
   await setItem(storageKeys.settings, settings);
+}
+
+export async function getWelcomeSeen(): Promise<boolean> {
+  return (await getItem<boolean>(storageKeys.welcomeSeen)) ?? false;
+}
+
+export async function setWelcomeSeen(seen: boolean): Promise<void> {
+  await setItem(storageKeys.welcomeSeen, seen);
 }
 
 export async function exportAppData(): Promise<AppExportData> {

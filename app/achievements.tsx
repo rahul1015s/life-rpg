@@ -11,10 +11,21 @@ import {
 import { type Href, useFocusEffect, useRouter } from 'expo-router';
 
 import { AchievementCard } from '../components/AchievementCard';
-import { theme } from '../constants/theme';
 import { buildAchievementCards, buildAchievementState } from '../lib/achievementEngine';
 import { getAchievements, getCompletionLog, getProfile, getProgress } from '../lib/storage';
-import type { AchievementCardView, PlayerProfile, PlayerProgress } from '../lib/types';
+import type { AchievementCardView, AchievementCategory, PlayerProfile, PlayerProgress } from '../lib/types';
+import { chronicleColors, chronicleFontFamily, chronicleSpacing, chronicleType } from '../theme/chronicle';
+
+const categoryOrder: AchievementCategory[] = ['streak', 'quests', 'level', 'xp', 'category', 'mens-health', 'haircare'];
+const categoryGroupLabels: Record<AchievementCategory, string> = {
+  streak: 'Streaks',
+  quests: 'Quests',
+  level: 'Levels',
+  xp: 'Experience',
+  category: 'Skill Milestones',
+  'mens-health': 'Discipline',
+  haircare: 'Hair Care',
+};
 
 export default function AchievementsScreen() {
   const router = useRouter();
@@ -23,6 +34,19 @@ export default function AchievementsScreen() {
   const [cards, setCards] = useState<AchievementCardView[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [collapsed, setCollapsed] = useState<Set<AchievementCategory>>(new Set());
+
+  function toggleCategory(category: AchievementCategory) {
+    setCollapsed((current) => {
+      const next = new Set(current);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
+  }
 
   const load = useCallback(async () => {
     const savedProfile = await getProfile();
@@ -80,23 +104,26 @@ export default function AchievementsScreen() {
   if (loading || !profile || !progress) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={theme.colors.accent} />
+        <ActivityIndicator size="large" color={chronicleColors.accentGold} />
       </View>
     );
   }
 
   const unlockedCount = cards.filter((card) => card.unlocked).length;
+  const groups = categoryOrder
+    .map((category) => ({ category, items: cards.filter((card) => card.category === category) }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
-      <Pressable onPress={() => router.back()}>
-        <Text style={styles.backLink}>Back to dashboard</Text>
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={chronicleColors.accentGold} />}>
+      <Pressable onPress={() => router.back()} style={({ pressed }) => (pressed ? styles.pressed : null)}>
+        <Text style={styles.backLink}>‹ Back to dashboard</Text>
       </Pressable>
 
-      <View style={styles.heroCard}>
+      <View style={styles.hero}>
         <Text style={styles.kicker}>ACHIEVEMENT ARCHIVE</Text>
         <Text style={styles.title}>Badges of Progress</Text>
         <Text style={styles.body}>
@@ -105,57 +132,111 @@ export default function AchievementsScreen() {
       </View>
 
       <View style={styles.list}>
-        {cards.map((achievement) => (
-          <AchievementCard key={achievement.id} achievement={achievement} />
-        ))}
+        {groups.map(({ category, items }) => {
+          const unlockedInGroup = items.filter((item) => item.unlocked).length;
+          const isCollapsed = collapsed.has(category);
+          return (
+            <View key={category} style={styles.group}>
+              <Pressable
+                style={({ pressed }) => [styles.groupHeader, pressed && styles.pressed]}
+                onPress={() => toggleCategory(category)}>
+                <Text style={styles.groupTitle}>
+                  {isCollapsed ? '▸' : '▾'} {categoryGroupLabels[category]}
+                </Text>
+                <Text style={styles.groupCounter}>
+                  {unlockedInGroup}/{items.length}
+                </Text>
+              </Pressable>
+              {!isCollapsed ? (
+                <View style={styles.groupList}>
+                  {items.map((achievement) => (
+                    <AchievementCard key={achievement.id} achievement={achievement} />
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          );
+        })}
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.colors.background },
+  screen: {
+    flex: 1,
+    backgroundColor: chronicleColors.bgBase,
+  },
   content: {
-    padding: theme.spacing.lg,
-    gap: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl * 2,
+    padding: chronicleSpacing.lg,
+    gap: chronicleSpacing.lg,
+    paddingBottom: chronicleSpacing.xxl,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
+    backgroundColor: chronicleColors.bgBase,
   },
   backLink: {
-    color: theme.colors.accentGlow,
-    fontSize: theme.font.sm,
-    fontWeight: '700',
+    color: chronicleColors.accentGold,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.sm,
   },
-  heroCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
+  hero: {
+    backgroundColor: chronicleColors.bgSurface,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.lg,
-    gap: theme.spacing.sm,
+    borderColor: chronicleColors.borderSubtle,
+    padding: chronicleSpacing.lg,
+    gap: chronicleSpacing.sm,
   },
   kicker: {
-    color: theme.colors.accentGlow,
-    fontSize: theme.font.sm,
-    fontWeight: '800',
+    color: chronicleColors.accentGold,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.xs,
     letterSpacing: 1,
   },
   title: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.font.xl,
-    fontWeight: '900',
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.display,
+    fontSize: chronicleType.xl,
   },
   body: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.md,
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.body,
+    fontSize: chronicleType.sm,
     lineHeight: 22,
   },
   list: {
-    gap: theme.spacing.md,
+    gap: chronicleSpacing.lg,
+  },
+  group: {
+    gap: chronicleSpacing.md,
+  },
+  groupHeader: {
+    minHeight: 44,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: chronicleColors.borderSubtle,
+    paddingBottom: chronicleSpacing.xs,
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+  groupTitle: {
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.display,
+    fontSize: chronicleType.lg,
+  },
+  groupCounter: {
+    color: chronicleColors.accentGold,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.sm,
+  },
+  groupList: {
+    gap: chronicleSpacing.md,
   },
 });

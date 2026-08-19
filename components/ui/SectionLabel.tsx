@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.parchment,
     fontFamily: fontFamily.display,
-    fontSize: typeScale.md,
+    fontSize: typeScale.lg,
     letterSpacing: 2,
   },
   counter: {

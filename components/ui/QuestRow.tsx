@@ -124,19 +124,19 @@ const styles = StyleSheet.create({
   meta: {
     color: colors.parchmentDim,
     fontFamily: fontFamily.mono,
-    fontSize: typeScale.xs,
+    fontSize: typeScale.sm,
     letterSpacing: 0.4,
   },
   reason: {
     color: colors.parchment,
     fontFamily: fontFamily.serif,
-    fontSize: typeScale.xs,
-    lineHeight: 15,
+    fontSize: typeScale.sm,
+    lineHeight: 20,
   },
   lockedText: {
     color: colors.gold,
     fontFamily: fontFamily.mono,
-    fontSize: typeScale.xs,
+    fontSize: typeScale.sm,
   },
   xp: {
     color: colors.gold,

@@ -13,7 +13,9 @@ import { type Href, useFocusEffect, useRouter } from 'expo-router';
 import { HairLogEntry } from '../components/HairLogEntry';
 import { HistoryDayCard } from '../components/HistoryDayCard';
 import { MetricCard } from '../components/MetricCard';
-import { theme } from '../constants/theme';
+import { ChronicleCard } from '../components/chronicle/ChronicleCard';
+import { ChronicleSectionHeader } from '../components/chronicle/ChronicleSectionHeader';
+import { chronicleColors, chronicleFontFamily, chronicleSpacing, chronicleType } from '../theme/chronicle';
 import {
   buildRecentActivityGrid,
   buildDailyHistoryGroups,
@@ -106,7 +108,7 @@ export default function HistoryScreen() {
   if (loading || !progress || !profile || !monthlySummary || !xpTracking) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={theme.colors.accent} />
+        <ActivityIndicator size="large" color={chronicleColors.accentGold} />
       </View>
     );
   }
@@ -115,21 +117,28 @@ export default function HistoryScreen() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={chronicleColors.accentGold}
+          colors={[chronicleColors.accentGold]}
+        />
+      }>
       <Pressable onPress={() => router.back()}>
         <Text style={styles.backLink}>Back to dashboard</Text>
       </Pressable>
 
-      <View style={styles.heroCard}>
+      <ChronicleCard style={styles.heroCard}>
         <Text style={styles.kicker}>HISTORY ARCHIVE</Text>
         <Text style={styles.title}>Progress Analytics</Text>
         <Text style={styles.body}>
           Review daily completions, month performance, streak stability, and long-term consistency.
         </Text>
-      </View>
+      </ChronicleCard>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>XP Tracking</Text>
+        <ChronicleSectionHeader title="XP Tracking" />
         <View style={styles.grid}>
           <MetricCard label="Today" value={`${xpTracking.today} XP`} />
           <MetricCard label="This Week" value={`${xpTracking.week} XP`} />
@@ -139,14 +148,14 @@ export default function HistoryScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Monthly Summary</Text>
+        <ChronicleSectionHeader title="Monthly Summary" />
         {historyGroups.length === 0 ? (
-          <View style={styles.emptyState}>
+          <ChronicleCard style={styles.emptyState}>
             <Text style={styles.emptyTitle}>No monthly data yet</Text>
             <Text style={styles.emptyBody}>
               Your monthly summary will appear after you complete your first quests.
             </Text>
-          </View>
+          </ChronicleCard>
         ) : (
           <View style={styles.grid}>
             <MetricCard label={monthlySummary.monthLabel} value={`${monthlySummary.xp} XP`} />
@@ -170,7 +179,7 @@ export default function HistoryScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Streak History</Text>
+        <ChronicleSectionHeader title="Streak History" />
         <View style={styles.grid}>
           <MetricCard label="Current Streak" value={`${progress.streak} days`} />
           <MetricCard label="Longest Streak" value={`${progress.longestStreak} days`} />
@@ -186,7 +195,7 @@ export default function HistoryScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Improvement Grid</Text>
+        <ChronicleSectionHeader title="Improvement Grid" />
         <Text style={styles.sectionBody}>
           Last 35 days of progress. Empty means no XP, then low, medium, and strong improvement days.
         </Text>
@@ -218,14 +227,14 @@ export default function HistoryScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Daily History</Text>
+        <ChronicleSectionHeader title="Daily History" />
         {historyGroups.length === 0 ? (
-          <View style={styles.emptyState}>
+          <ChronicleCard style={styles.emptyState}>
             <Text style={styles.emptyTitle}>No history yet</Text>
             <Text style={styles.emptyBody}>
               Complete quests on the dashboard and your daily archive will appear here.
             </Text>
-          </View>
+          </ChronicleCard>
         ) : (
           <View style={styles.list}>
             {historyGroups.map((group) => (
@@ -237,12 +246,12 @@ export default function HistoryScreen() {
 
       {profile.usesMinoxidil ? (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Hair Log Timeline</Text>
+          <ChronicleSectionHeader title="Hair Log Timeline" />
           {hairTimeline.length === 0 ? (
-            <View style={styles.emptyState}>
+            <ChronicleCard style={styles.emptyState}>
               <Text style={styles.emptyTitle}>No hair logs yet</Text>
               <Text style={styles.emptyBody}>Log treatment progress from the hair care screen to see it here.</Text>
-            </View>
+            </ChronicleCard>
           ) : (
             <View style={styles.list}>
               {hairTimeline.map((entry) => (
@@ -259,118 +268,107 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: chronicleColors.bgBase,
   },
   content: {
-    padding: theme.spacing.lg,
-    gap: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl * 2,
+    padding: chronicleSpacing.lg,
+    gap: chronicleSpacing.lg,
+    paddingBottom: chronicleSpacing.xl * 2,
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.background,
+    backgroundColor: chronicleColors.bgBase,
   },
   backLink: {
-    color: theme.colors.accentGlow,
-    fontSize: theme.font.sm,
-    fontWeight: '700',
+    color: chronicleColors.accentGold,
+    fontFamily: chronicleFontFamily.bodySemiBold,
+    fontSize: chronicleType.sm,
   },
-  heroCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.lg,
-    gap: theme.spacing.sm,
-  },
+  heroCard: { gap: chronicleSpacing.sm },
   kicker: {
-    color: theme.colors.accentGlow,
-    fontSize: theme.font.sm,
-    fontWeight: '800',
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.xs,
     letterSpacing: 1,
   },
   title: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.font.xl,
-    fontWeight: '900',
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.display,
+    fontSize: chronicleType.lg,
+    letterSpacing: 0.5,
   },
   body: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.md,
-    lineHeight: 22,
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.body,
+    fontSize: chronicleType.md,
+    lineHeight: 24,
   },
   section: {
-    gap: theme.spacing.md,
-  },
-  sectionTitle: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.font.lg,
-    fontWeight: '800',
+    gap: chronicleSpacing.md,
   },
   sectionBody: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.sm,
-    lineHeight: 18,
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.body,
+    fontSize: chronicleType.sm,
+    lineHeight: 20,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.md,
+    gap: chronicleSpacing.md,
   },
   gridLegend: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
+    gap: chronicleSpacing.sm,
   },
   legendText: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.sm,
-    fontWeight: '700',
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.xs,
+    letterSpacing: 0.5,
   },
   activityGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: chronicleSpacing.sm,
   },
   gridCell: {
     width: 18,
     height: 18,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: chronicleColors.borderSubtle,
   },
+  // Single-hue intensity ramp: dark surface -> muted gold -> gold -> bone highlight.
+  // Deliberately no second hue, per DESIGN.md's palette rules.
   gridCellNone: {
-    backgroundColor: theme.colors.surfaceAlt,
+    backgroundColor: chronicleColors.bgSurfaceRaised,
   },
   gridCellLow: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: chronicleColors.accentGoldMuted,
   },
   gridCellMedium: {
-    backgroundColor: theme.colors.accent,
+    backgroundColor: chronicleColors.accentGold,
   },
   gridCellHigh: {
-    backgroundColor: theme.colors.success,
+    backgroundColor: chronicleColors.textPrimary,
   },
   list: {
-    gap: theme.spacing.md,
+    gap: chronicleSpacing.md,
   },
-  emptyState: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.md,
-    gap: theme.spacing.sm,
-  },
+  emptyState: { gap: chronicleSpacing.sm },
   emptyTitle: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.font.md,
-    fontWeight: '800',
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.display,
+    fontSize: chronicleType.md,
+    letterSpacing: 0.5,
   },
   emptyBody: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.sm,
-    lineHeight: 18,
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.body,
+    fontSize: chronicleType.sm,
+    lineHeight: 20,
   },
 });

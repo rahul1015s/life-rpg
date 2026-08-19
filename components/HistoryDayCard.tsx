@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { theme } from '../constants/theme';
+import { ChronicleCard } from './chronicle/ChronicleCard';
+import { chronicleColors, chronicleFontFamily, chronicleRadius, chronicleSpacing, chronicleType } from '../theme/chronicle';
 import type { DailyHistoryGroup, StatKey } from '../lib/types';
 
 interface HistoryDayCardProps {
@@ -18,7 +19,7 @@ function formatStats(statTotals: DailyHistoryGroup['statTotals']): string {
 
 export function HistoryDayCard({ group }: HistoryDayCardProps) {
   return (
-    <View style={styles.card}>
+    <ChronicleCard style={styles.card}>
       <View style={styles.header}>
         <View>
           <Text style={styles.date}>{group.date}</Text>
@@ -45,64 +46,69 @@ export function HistoryDayCard({ group }: HistoryDayCardProps) {
       )}
 
       <Text style={styles.statsLine}>Stats improved: {formatStats(group.statTotals)}</Text>
-    </View>
+    </ChronicleCard>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.md,
-    gap: theme.spacing.md,
+    gap: chronicleSpacing.md,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: theme.spacing.md,
+    gap: chronicleSpacing.md,
   },
   date: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.font.md,
-    fontWeight: '800',
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.monoBold,
+    fontSize: chronicleType.md,
+    letterSpacing: 0.5,
   },
   meta: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.sm,
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.xs,
+    letterSpacing: 0.5,
   },
   badge: {
-    color: theme.colors.accentGlow,
-    fontSize: theme.font.sm,
-    fontWeight: '700',
+    color: chronicleColors.accentGoldMuted,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.xs,
+    letterSpacing: 0.5,
   },
   questList: {
-    gap: theme.spacing.sm,
+    gap: chronicleSpacing.sm,
   },
   questRow: {
-    padding: theme.spacing.sm,
-    borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.surfaceAlt,
+    padding: chronicleSpacing.sm,
+    borderRadius: chronicleRadius.sm,
+    backgroundColor: chronicleColors.bgSurfaceRaised,
   },
+  // Quest titles are user/content strings of unbounded length -> Manrope, not Cinzel.
   questTitle: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.font.md,
-    fontWeight: '700',
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.bodySemiBold,
+    fontSize: chronicleType.sm,
   },
   questMeta: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.sm,
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.xs,
+    letterSpacing: 0.5,
     marginTop: 2,
   },
   emptyText: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.sm,
-    lineHeight: 18,
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.body,
+    fontSize: chronicleType.sm,
+    lineHeight: 20,
   },
   statsLine: {
-    color: theme.colors.accent,
-    fontSize: theme.font.sm,
+    color: chronicleColors.accentGold,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.xs,
+    letterSpacing: 0.5,
     lineHeight: 18,
   },
 });

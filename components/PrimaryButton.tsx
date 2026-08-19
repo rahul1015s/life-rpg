@@ -52,9 +52,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
   },
   secondaryButton: {
-    backgroundColor: theme.colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 2,
+    borderColor: theme.colors.accent,
   },
   disabledButton: {
     opacity: 0.55,

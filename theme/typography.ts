@@ -8,10 +8,10 @@ export const fontFamily = {
 } as const;
 
 export const typeScale = {
-  xs: 10,
-  sm: 11,
-  md: 14,
-  lg: 20,
-  xl: 26,
-  xxl: 34,
+  xs: 11,
+  sm: 14,
+  md: 16,
+  lg: 22,
+  xl: 28,
+  xxl: 36,
 } as const;

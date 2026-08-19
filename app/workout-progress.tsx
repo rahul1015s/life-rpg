@@ -1,17 +1,23 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { nanoid } from 'nanoid/non-secure';
 import { type Href, useFocusEffect, useRouter } from 'expo-router';
 import type { MarkedDates } from 'react-native-calendars/src/types';
 
 import { AppCalendar } from '../components/AppCalendar';
-import { PrimaryButton } from '../components/PrimaryButton';
-import { theme } from '../constants/theme';
+import { ChronicleButton } from '../components/chronicle/ChronicleButton';
+import { ChronicleCard } from '../components/chronicle/ChronicleCard';
+import { ChronicleInput } from '../components/chronicle/ChronicleInput';
+import { ChronicleSectionHeader } from '../components/chronicle/ChronicleSectionHeader';
+import { ChronicleSegmentedControl } from '../components/chronicle/ChronicleSegmentedControl';
+import { ChronicleStatPanel } from '../components/chronicle/ChronicleStatPanel';
 import { summarizeWorkoutProgress } from '../lib/growthEngine';
 import { deleteLocalImage, getLocalDateString, saveImageToLocalDirectory } from '../lib/haircareEngine';
 import { getProfile, getWorkoutEntries, setWorkoutEntries } from '../lib/storage';
 import type { WorkoutEntry } from '../lib/types';
+import { chronicleColors, chronicleFontFamily, chronicleSpacing, chronicleType } from '../theme/chronicle';
+import { chronicleCalendarTheme } from '../theme/chronicleCalendarTheme';
 
 function emptyWorkout(date: string): WorkoutEntry {
   return {
@@ -68,10 +74,15 @@ export default function WorkoutProgressScreen() {
   }
 
   async function saveWorkout() {
-    const next = [draft, ...entries].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    await setWorkoutEntries(next);
-    setEntries(next);
-    setDraft(emptyWorkout(getLocalDateString()));
+    try {
+      const next = [draft, ...entries].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      await setWorkoutEntries(next);
+      setEntries(next);
+      setDraft(emptyWorkout(getLocalDateString()));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to save this workout.';
+      Alert.alert('Save failed', message);
+    }
   }
 
   async function pickWorkoutImage(source: 'camera' | 'gallery') {
@@ -127,7 +138,7 @@ export default function WorkoutProgressScreen() {
     () =>
       entries.reduce<MarkedDates>((acc, entry) => {
         acc[entry.date] = {
-          dots: [{ key: 'workout', color: '#2ecc71' }],
+          dots: [{ key: 'workout', color: chronicleColors.accentGold }],
         };
         return acc;
       }, {}),
@@ -138,12 +149,21 @@ export default function WorkoutProgressScreen() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
-      <Pressable onPress={() => router.back()}>
-        <Text style={styles.backLink}>Back</Text>
-      </Pressable>
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={chronicleColors.accentGold} />}>
+      <View style={styles.topLinks}>
+        <Pressable onPress={() => router.back()} style={({ pressed }) => (pressed ? styles.pressed : null)}>
+          <Text style={styles.backLink}>‹ Back</Text>
+        </Pressable>
+        <Pressable
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          onPress={() => router.push('/workout-calendar' as Href)}
+          style={({ pressed }) => (pressed ? styles.pressed : null)}>
+          <Text style={styles.backLink}>Month View ›</Text>
+        </Pressable>
+      </View>
 
-      <View style={styles.heroCard}>
+      <View style={styles.hero}>
         <Text style={styles.kicker}>WORKOUT PROGRESS</Text>
         <Text style={styles.title}>Track sessions, strength, and physique photos</Text>
         <Text style={styles.body}>
@@ -152,128 +172,204 @@ export default function WorkoutProgressScreen() {
       </View>
 
       <View style={styles.metricsRow}>
-        <Metric label="STRENGTH" value={String(summary.strengthSessions)} />
-        <Metric label="SESSIONS" value={String(summary.totalSessions)} />
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Workout calendar</Text>
-        <Text style={styles.meta}>Green dates show completed workout logs.</Text>
-        <AppCalendar markedDates={markedDates} current={draft.date} />
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Log workout</Text>
-        <TextInput
-          style={styles.input}
-          value={draft.title}
-          onChangeText={(text) => setDraft((current) => ({ ...current, title: text }))}
-          placeholder="Push day, chest and triceps, 5K run..."
-          placeholderTextColor={theme.colors.textMuted}
-        />
-        <View style={styles.row}>
-          {workoutTypes.map((type) => (
-            <Pressable
-              key={type}
-              style={[styles.chip, draft.workoutType === type ? styles.chipSelected : null]}
-              onPress={() => setDraft((current) => ({ ...current, workoutType: type }))}>
-              <Text style={styles.chipText}>{type}</Text>
-            </Pressable>
-          ))}
-        </View>
-        <View style={styles.fieldWrap}>
-          <Text style={styles.fieldLabel}>Session time</Text>
-          <View style={styles.row}>
-            {sessionTimes.map((time) => (
-              <Pressable
-                key={time}
-                style={[styles.chip, draft.sessionTime === time ? styles.chipSelected : null]}
-                onPress={() => setDraft((current) => ({ ...current, sessionTime: time }))}>
-                <Text style={styles.chipText}>{time}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-        <NumberField label="Duration minutes" value={draft.durationMinutes} onChange={(value) => setDraft((current) => ({ ...current, durationMinutes: value }))} />
-        <NumberField label="Sets" value={draft.sets} onChange={(value) => setDraft((current) => ({ ...current, sets: value }))} />
-        <NumberField label="Reps" value={draft.reps} onChange={(value) => setDraft((current) => ({ ...current, reps: value }))} />
-        <NumberField label="Weight kg" value={draft.weightKg} onChange={(value) => setDraft((current) => ({ ...current, weightKg: value }))} />
-        <NumberField label="Effort 1-10" value={draft.effort} onChange={(value) => setDraft((current) => ({ ...current, effort: Math.max(1, Math.min(10, value)) }))} />
-        <TextInput
-          style={[styles.input, styles.multiline]}
-          value={draft.note}
-          onChangeText={(text) => setDraft((current) => ({ ...current, note: text }))}
-          placeholder="How did this workout feel?"
-          placeholderTextColor={theme.colors.textMuted}
-          multiline
-        />
-        <PrimaryButton label="Add Camera or Gallery Image" onPress={chooseWorkoutImage} loading={savingImage} variant="secondary" />
-        {draft.imageUri ? <Image source={{ uri: draft.imageUri }} style={styles.preview} /> : null}
-        <PrimaryButton label="Save Workout" onPress={saveWorkout} />
+        <ChronicleStatPanel value={String(summary.strengthSessions)} label="STRENGTH" />
+        <ChronicleStatPanel value={String(summary.totalSessions)} label="SESSIONS" />
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recent workouts</Text>
-        {entries.slice(0, 8).map((entry) => (
-          <View key={entry.id} style={styles.card}>
-            <Text style={styles.cardTitle}>{entry.title || 'Workout session'}</Text>
-            <Text style={styles.meta}>
-              {entry.date} · {entry.sessionTime} · {entry.workoutType} · {entry.durationMinutes} min · effort {entry.effort}/10
-            </Text>
-            <Text style={styles.body}>
-              {entry.sets} sets · {entry.reps} reps · {entry.weightKg} kg
-            </Text>
-            {entry.imageUri ? <Image source={{ uri: entry.imageUri }} style={styles.image} /> : null}
+        <ChronicleSectionHeader title="Workout Calendar" />
+        <ChronicleCard>
+          <Text style={styles.meta}>Gold marks show completed workout logs.</Text>
+          <AppCalendar markedDates={markedDates} current={draft.date} calendarTheme={chronicleCalendarTheme} />
+        </ChronicleCard>
+      </View>
+
+      <View style={styles.section}>
+        <ChronicleSectionHeader title="Log Workout" />
+        <ChronicleCard style={styles.formCard}>
+          <ChronicleInput
+            label="Title"
+            value={draft.title}
+            onChangeText={(text) => setDraft((current) => ({ ...current, title: text }))}
+            placeholder="Push day, chest and triceps, 5K run..."
+          />
+
+          <View style={styles.fieldWrap}>
+            <Text style={styles.fieldLabel}>Workout type</Text>
+            <ChronicleSegmentedControl
+              options={workoutTypes.map((type) => ({ value: type, label: type }))}
+              value={draft.workoutType}
+              onChange={(value) => setDraft((current) => ({ ...current, workoutType: value }))}
+            />
           </View>
-        ))}
+
+          <View style={styles.fieldWrap}>
+            <Text style={styles.fieldLabel}>Session time</Text>
+            <ChronicleSegmentedControl
+              options={sessionTimes.map((time) => ({ value: time, label: time }))}
+              value={draft.sessionTime}
+              onChange={(value) => setDraft((current) => ({ ...current, sessionTime: value }))}
+            />
+          </View>
+
+          <ChronicleInput
+            label="Duration minutes"
+            keyboardType="decimal-pad"
+            value={String(draft.durationMinutes)}
+            onChangeText={(text) => setDraft((current) => ({ ...current, durationMinutes: Number(text || 0) }))}
+          />
+          <ChronicleInput
+            label="Sets"
+            keyboardType="decimal-pad"
+            value={String(draft.sets)}
+            onChangeText={(text) => setDraft((current) => ({ ...current, sets: Number(text || 0) }))}
+          />
+          <ChronicleInput
+            label="Reps"
+            keyboardType="decimal-pad"
+            value={String(draft.reps)}
+            onChangeText={(text) => setDraft((current) => ({ ...current, reps: Number(text || 0) }))}
+          />
+          <ChronicleInput
+            label="Weight kg"
+            keyboardType="decimal-pad"
+            value={String(draft.weightKg)}
+            onChangeText={(text) => setDraft((current) => ({ ...current, weightKg: Number(text || 0) }))}
+          />
+          <ChronicleInput
+            label="Effort 1-10"
+            keyboardType="decimal-pad"
+            value={String(draft.effort)}
+            onChangeText={(text) =>
+              setDraft((current) => ({ ...current, effort: Math.max(1, Math.min(10, Number(text || 0))) }))
+            }
+          />
+          <ChronicleInput
+            label="Notes"
+            value={draft.note}
+            onChangeText={(text) => setDraft((current) => ({ ...current, note: text }))}
+            placeholder="How did this workout feel?"
+            multiline
+          />
+
+          <ChronicleButton label="Add Camera or Gallery Image" onPress={chooseWorkoutImage} loading={savingImage} variant="secondary" />
+          {draft.imageUri ? <Image source={{ uri: draft.imageUri }} style={styles.preview} /> : null}
+          <ChronicleButton label="Save Workout" onPress={saveWorkout} />
+        </ChronicleCard>
+      </View>
+
+      <View style={styles.section}>
+        <ChronicleSectionHeader title="Recent Workouts" />
+        {entries.length === 0 ? (
+          <ChronicleCard>
+            <Text style={styles.entryTitle}>Nothing logged yet</Text>
+            <Text style={styles.body}>Fill in the form above and save your first session — it&apos;ll show up here and mark today on the calendar.</Text>
+          </ChronicleCard>
+        ) : null}
+        <View style={styles.entryList}>
+          {entries.slice(0, 8).map((entry) => (
+            <ChronicleCard key={entry.id}>
+              <Text style={styles.entryTitle}>{entry.title || 'Workout session'}</Text>
+              <Text style={styles.meta}>
+                {entry.date} · {entry.sessionTime} · {entry.workoutType} · {entry.durationMinutes} min · effort {entry.effort}/10
+              </Text>
+              <Text style={styles.body}>
+                {entry.sets} sets · {entry.reps} reps · {entry.weightKg} kg
+              </Text>
+              {entry.imageUri ? <Image source={{ uri: entry.imageUri }} style={styles.image} /> : null}
+            </ChronicleCard>
+          ))}
+        </View>
       </View>
     </ScrollView>
   );
 }
 
-function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
-  return (
-    <View style={styles.fieldWrap}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput style={styles.input} keyboardType="decimal-pad" value={String(value)} onChangeText={(text) => onChange(Number(text || 0))} />
-    </View>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.metricCard}>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={styles.metricValue}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.colors.background },
-  content: { padding: theme.spacing.lg, gap: theme.spacing.lg, paddingBottom: theme.spacing.xl * 2 },
-  backLink: { color: theme.colors.accentGlow, fontSize: theme.font.sm, fontWeight: '700' },
-  heroCard: { backgroundColor: theme.colors.surface, borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.lg, gap: theme.spacing.sm },
-  kicker: { color: theme.colors.accentGlow, fontSize: theme.font.sm, fontWeight: '800', letterSpacing: 1 },
-  title: { color: theme.colors.textPrimary, fontSize: theme.font.xl, fontWeight: '900' },
-  body: { color: theme.colors.textPrimary, fontSize: theme.font.sm, lineHeight: 20 },
-  meta: { color: theme.colors.textMuted, fontSize: theme.font.sm },
-  metricsRow: { flexDirection: 'row', gap: theme.spacing.md },
-  metricCard: { flex: 1, backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.accent, padding: theme.spacing.md, gap: theme.spacing.xs },
-  metricLabel: { color: theme.colors.textMuted, fontSize: theme.font.sm },
-  metricValue: { color: theme.colors.textPrimary, fontSize: theme.font.lg, fontWeight: '900' },
-  section: { gap: theme.spacing.md },
-  sectionTitle: { color: theme.colors.textPrimary, fontSize: theme.font.lg, fontWeight: '800' },
-  card: { backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.md, gap: theme.spacing.sm },
-  cardTitle: { color: theme.colors.textPrimary, fontSize: theme.font.md, fontWeight: '800' },
-  fieldWrap: { gap: theme.spacing.xs },
-  fieldLabel: { color: theme.colors.textPrimary, fontSize: theme.font.sm, fontWeight: '700' },
-  input: { backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.border, paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm, color: theme.colors.textPrimary },
-  multiline: { minHeight: 96, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
-  chip: { paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm, borderRadius: theme.radius.full, backgroundColor: theme.colors.surfaceAlt, borderWidth: 1, borderColor: theme.colors.border },
-  chipSelected: { backgroundColor: theme.colors.primary, borderColor: theme.colors.accent },
-  chipText: { color: theme.colors.textPrimary, fontSize: theme.font.sm, textTransform: 'capitalize' },
-  preview: { width: '100%', aspectRatio: 1, borderRadius: theme.radius.md },
-  image: { width: '100%', height: 220, borderRadius: theme.radius.md },
+  topLinks: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  screen: {
+    flex: 1,
+    backgroundColor: chronicleColors.bgBase,
+  },
+  content: {
+    padding: chronicleSpacing.lg,
+    gap: chronicleSpacing.lg,
+    paddingBottom: chronicleSpacing.xxl,
+  },
+  backLink: {
+    color: chronicleColors.accentGold,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.sm,
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+  hero: {
+    backgroundColor: chronicleColors.bgSurface,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: chronicleColors.borderSubtle,
+    padding: chronicleSpacing.lg,
+    gap: chronicleSpacing.sm,
+  },
+  kicker: {
+    color: chronicleColors.accentGold,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.xs,
+    letterSpacing: 1,
+  },
+  title: {
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.display,
+    fontSize: chronicleType.lg,
+  },
+  body: {
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.body,
+    fontSize: chronicleType.sm,
+    lineHeight: 20,
+  },
+  meta: {
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.sm,
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    gap: chronicleSpacing.md,
+  },
+  section: {
+    gap: chronicleSpacing.sm,
+  },
+  formCard: {
+    gap: chronicleSpacing.md,
+  },
+  fieldWrap: {
+    gap: chronicleSpacing.sm,
+  },
+  fieldLabel: {
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.bodySemiBold,
+    fontSize: chronicleType.sm,
+  },
+  preview: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 6,
+  },
+  entryList: {
+    gap: chronicleSpacing.md,
+  },
+  entryTitle: {
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.bodySemiBold,
+    fontSize: chronicleType.md,
+    marginBottom: 4,
+  },
+  image: {
+    width: '100%',
+    height: 220,
+    borderRadius: 6,
+    marginTop: chronicleSpacing.sm,
+  },
 });

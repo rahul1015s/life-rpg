@@ -7,13 +7,15 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { type Href, useFocusEffect, useRouter } from 'expo-router';
 
-import { PrimaryButton } from '../components/PrimaryButton';
-import { theme } from '../constants/theme';
+import { ChronicleButton } from '../components/chronicle/ChronicleButton';
+import { ChronicleCard } from '../components/chronicle/ChronicleCard';
+import { ChronicleInput } from '../components/chronicle/ChronicleInput';
+import { ChronicleProgressBar } from '../components/chronicle/ChronicleProgressBar';
+import { chronicleColors, chronicleFontFamily, chronicleSpacing, chronicleType } from '../theme/chronicle';
 import { getGoalProgressPercent } from '../lib/goalsEngine';
 import { getCompletionLog, getCustomQuests, getGoals, getProfile, setGoals } from '../lib/storage';
 import type { GoalCategory, PersonalGoal, QuestTemplate } from '../lib/types';
@@ -115,18 +117,25 @@ export default function GoalsScreen() {
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={chronicleColors.accentGold}
+            colors={[chronicleColors.accentGold]}
+          />
+        }>
         <Pressable onPress={() => router.back()}>
           <Text style={styles.backLink}>Back to dashboard</Text>
         </Pressable>
 
-        <View style={styles.heroCard}>
+        <ChronicleCard style={styles.heroCard}>
           <Text style={styles.kicker}>PERSONAL GOALS</Text>
           <Text style={styles.title}>Linked Goal System</Text>
-          <Text style={styles.body}>{goals.length - completedCount} active • {completedCount} completed</Text>
-        </View>
+          <Text style={styles.heroMeta}>{goals.length - completedCount} active • {completedCount} completed</Text>
+        </ChronicleCard>
 
-        <PrimaryButton
+        <ChronicleButton
           label="Create Goal"
           onPress={() => {
             setEditingGoal(emptyGoal());
@@ -136,35 +145,37 @@ export default function GoalsScreen() {
 
         <View style={styles.list}>
           {goals.length === 0 ? (
-            <View style={styles.emptyCard}>
+            <ChronicleCard style={styles.emptyCard}>
               <Text style={styles.emptyTitle}>No goals yet</Text>
               <Text style={styles.emptyBody}>Create a personal goal and link quests to move it forward.</Text>
-            </View>
+            </ChronicleCard>
           ) : (
             goals.map((goal) => (
-              <View key={goal.id} style={styles.goalCard}>
+              <ChronicleCard key={goal.id} style={styles.goalCard}>
                 <Text style={styles.goalTitle}>{goal.title}</Text>
                 <Text style={styles.goalMeta}>
                   {goal.category} • {goal.progressPercent}% • target {goal.targetDate}
                 </Text>
-                <View style={styles.track}>
-                  <View style={[styles.fill, { width: `${goal.progressPercent}%` }]} />
-                </View>
+                <ChronicleProgressBar progress={goal.progressPercent / 100} />
                 <Text style={styles.goalMeta}>
                   {goal.linkedQuestIds.length} linked quests • {goal.bonusXP} XP reward • {goal.status}
                 </Text>
                 <View style={styles.actions}>
-                  <PrimaryButton
-                    label="Edit"
-                    onPress={() => {
-                      setEditingGoal(goal);
-                      setVisible(true);
-                    }}
-                    variant="secondary"
-                  />
-                  <PrimaryButton label="Delete" onPress={() => deleteGoal(goal.id)} />
+                  <View style={styles.action}>
+                    <ChronicleButton
+                      label="Edit"
+                      onPress={() => {
+                        setEditingGoal(goal);
+                        setVisible(true);
+                      }}
+                      variant="secondary"
+                    />
+                  </View>
+                  <View style={styles.action}>
+                    <ChronicleButton label="Delete" onPress={() => deleteGoal(goal.id)} variant="danger" />
+                  </View>
                 </View>
-              </View>
+              </ChronicleCard>
             ))
           )}
         </View>
@@ -173,28 +184,22 @@ export default function GoalsScreen() {
       <Modal visible={visible} transparent animationType="slide" onRequestClose={() => setVisible(false)}>
         <View style={styles.modalBackdrop}>
           <ScrollView contentContainerStyle={styles.modalContent}>
-            <View style={styles.modalCard}>
+            <ChronicleCard style={styles.modalCard}>
               <Text style={styles.modalTitle}>{editingGoal?.id ? 'Edit Goal' : 'Create Goal'}</Text>
-              <TextInput
-                style={styles.input}
+              <ChronicleInput
                 placeholder="Goal title"
-                placeholderTextColor={theme.colors.textMuted}
                 value={editingGoal?.title ?? ''}
                 onChangeText={(text) => setEditingGoal((current) => (current ? { ...current, title: text } : current))}
               />
-              <TextInput
-                style={styles.input}
+              <ChronicleInput
                 placeholder="Target date YYYY-MM-DD"
-                placeholderTextColor={theme.colors.textMuted}
                 value={editingGoal?.targetDate ?? ''}
                 onChangeText={(text) =>
                   setEditingGoal((current) => (current ? { ...current, targetDate: text } : current))
                 }
               />
-              <TextInput
-                style={styles.input}
+              <ChronicleInput
                 placeholder="Bonus XP"
-                placeholderTextColor={theme.colors.textMuted}
                 keyboardType="numeric"
                 value={String(editingGoal?.bonusXP ?? 75)}
                 onChangeText={(text) =>
@@ -207,11 +212,15 @@ export default function GoalsScreen() {
                   {goalCategories.map((category) => (
                     <Pressable
                       key={category}
+                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                       style={[styles.chip, editingGoal?.category === category ? styles.chipSelected : null]}
                       onPress={() =>
                         setEditingGoal((current) => (current ? { ...current, category } : current))
                       }>
-                      <Text style={styles.chipText}>{category}</Text>
+                      <Text
+                        style={[styles.chipText, editingGoal?.category === category ? styles.chipTextSelected : null]}>
+                        {category}
+                      </Text>
                     </Pressable>
                   ))}
                 </View>
@@ -222,11 +231,14 @@ export default function GoalsScreen() {
                   {(['active', 'completed'] as const).map((status) => (
                     <Pressable
                       key={status}
+                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                       style={[styles.chip, editingGoal?.status === status ? styles.chipSelected : null]}
                       onPress={() =>
                         setEditingGoal((current) => (current ? { ...current, status } : current))
                       }>
-                      <Text style={styles.chipText}>{status}</Text>
+                      <Text style={[styles.chipText, editingGoal?.status === status ? styles.chipTextSelected : null]}>
+                        {status}
+                      </Text>
                     </Pressable>
                   ))}
                 </View>
@@ -248,6 +260,7 @@ export default function GoalsScreen() {
                       return (
                         <Pressable
                           key={quest.id}
+                          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                           style={[styles.chip, selected ? styles.chipSelected : null]}
                           onPress={() =>
                             setEditingGoal((current) => {
@@ -258,17 +271,21 @@ export default function GoalsScreen() {
                               return { ...current, linkedQuestIds: linked };
                             })
                           }>
-                          <Text style={styles.chipText}>{quest.title}</Text>
+                          <Text style={[styles.chipText, selected ? styles.chipTextSelected : null]}>{quest.title}</Text>
                         </Pressable>
                       );
                     })}
                 </View>
               </View>
               <View style={styles.actions}>
-                <PrimaryButton label="Cancel" onPress={() => setVisible(false)} variant="secondary" />
-                <PrimaryButton label="Save Goal" onPress={saveGoal} />
+                <View style={styles.action}>
+                  <ChronicleButton label="Cancel" onPress={() => setVisible(false)} variant="secondary" />
+                </View>
+                <View style={styles.action}>
+                  <ChronicleButton label="Save Goal" onPress={saveGoal} />
+                </View>
               </View>
-            </View>
+            </ChronicleCard>
           </ScrollView>
         </View>
       </Modal>
@@ -277,81 +294,91 @@ export default function GoalsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.colors.background },
-  content: { padding: theme.spacing.lg, gap: theme.spacing.lg, paddingBottom: theme.spacing.xl * 2 },
-  backLink: { color: theme.colors.accentGlow, fontSize: theme.font.sm, fontWeight: '700' },
-  heroCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.lg,
-    gap: theme.spacing.sm,
+  screen: { flex: 1, backgroundColor: chronicleColors.bgBase },
+  content: { padding: chronicleSpacing.lg, gap: chronicleSpacing.lg, paddingBottom: chronicleSpacing.xl * 2 },
+  backLink: {
+    color: chronicleColors.accentGold,
+    fontFamily: chronicleFontFamily.bodySemiBold,
+    fontSize: chronicleType.sm,
   },
-  kicker: { color: theme.colors.accentGlow, fontSize: theme.font.sm, fontWeight: '800', letterSpacing: 1 },
-  title: { color: theme.colors.textPrimary, fontSize: theme.font.xl, fontWeight: '900' },
-  body: { color: theme.colors.textMuted, fontSize: theme.font.md },
-  list: { gap: theme.spacing.md },
-  emptyCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.md,
-    gap: theme.spacing.sm,
+  heroCard: { gap: chronicleSpacing.sm },
+  kicker: {
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.xs,
+    letterSpacing: 1,
   },
-  emptyTitle: { color: theme.colors.textPrimary, fontSize: theme.font.md, fontWeight: '800' },
-  emptyBody: { color: theme.colors.textMuted, fontSize: theme.font.sm },
-  goalCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.md,
-    gap: theme.spacing.sm,
+  title: {
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.display,
+    fontSize: chronicleType.lg,
+    letterSpacing: 0.5,
   },
-  goalTitle: { color: theme.colors.textPrimary, fontSize: theme.font.md, fontWeight: '800' },
-  goalMeta: { color: theme.colors.textMuted, fontSize: theme.font.sm },
-  track: {
-    height: 12,
-    borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.surfaceAlt,
-    overflow: 'hidden',
+  heroMeta: {
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.sm,
+    letterSpacing: 0.5,
   },
-  fill: { height: '100%', backgroundColor: theme.colors.accent },
-  actions: { flexDirection: 'row', gap: theme.spacing.md },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(11, 7, 16, 0.9)' },
-  modalContent: { padding: theme.spacing.lg },
-  modalCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.lg,
-    gap: theme.spacing.md,
+  list: { gap: chronicleSpacing.md },
+  emptyCard: { gap: chronicleSpacing.sm },
+  emptyTitle: {
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.display,
+    fontSize: chronicleType.md,
+    letterSpacing: 0.5,
   },
-  modalTitle: { color: theme.colors.textPrimary, fontSize: theme.font.lg, fontWeight: '900' },
-  input: {
-    backgroundColor: theme.colors.surfaceAlt,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    color: theme.colors.textPrimary,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    fontSize: theme.font.md,
+  emptyBody: {
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.body,
+    fontSize: chronicleType.sm,
+    lineHeight: 20,
   },
-  optionGroup: { gap: theme.spacing.sm },
-  optionTitle: { color: theme.colors.textPrimary, fontSize: theme.font.md, fontWeight: '700' },
-  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
+  goalCard: { gap: chronicleSpacing.sm },
+  // Goal titles are user-entered and unbounded -> Manrope, not Cinzel (DESIGN.md section 2).
+  goalTitle: {
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.bodyBold,
+    fontSize: chronicleType.md,
+  },
+  goalMeta: {
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.xs,
+    letterSpacing: 0.5,
+  },
+  actions: { flexDirection: 'row', gap: chronicleSpacing.md },
+  action: { flex: 1 },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(18, 20, 28, 0.92)' },
+  modalContent: { padding: chronicleSpacing.lg },
+  modalCard: { gap: chronicleSpacing.md },
+  modalTitle: {
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.display,
+    fontSize: chronicleType.lg,
+    letterSpacing: 0.5,
+  },
+  optionGroup: { gap: chronicleSpacing.sm },
+  optionTitle: {
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.bodySemiBold,
+    fontSize: chronicleType.sm,
+  },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: chronicleSpacing.sm },
   chip: {
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.surfaceAlt,
+    paddingHorizontal: chronicleSpacing.md,
+    paddingVertical: chronicleSpacing.sm,
+    borderRadius: 999,
+    backgroundColor: chronicleColors.bgSurfaceRaised,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: chronicleColors.textMuted,
   },
-  chipSelected: { borderColor: theme.colors.accent, backgroundColor: theme.colors.primary },
-  chipText: { color: theme.colors.textPrimary, fontSize: theme.font.sm, textTransform: 'capitalize' },
+  chipSelected: { backgroundColor: chronicleColors.accentGold, borderColor: chronicleColors.accentGold },
+  chipText: {
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.bodySemiBold,
+    fontSize: chronicleType.sm,
+    textTransform: 'capitalize',
+  },
+  chipTextSelected: { color: chronicleColors.bgBase },
 });

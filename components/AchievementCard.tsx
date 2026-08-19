@@ -1,7 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { theme } from '../constants/theme';
+import { WaxSeal } from './chronicle/WaxSeal';
 import type { AchievementCardView } from '../lib/types';
+import { chronicleColors, chronicleFontFamily, chronicleRadius, chronicleSpacing, chronicleType } from '../theme/chronicle';
 
 interface AchievementCardProps {
   achievement: AchievementCardView;
@@ -11,9 +12,9 @@ export function AchievementCard({ achievement }: AchievementCardProps) {
   return (
     <View style={[styles.card, achievement.unlocked ? styles.unlockedCard : styles.lockedCard]}>
       <View style={styles.header}>
-        <Text style={styles.icon}>{achievement.icon}</Text>
+        <WaxSeal completed={achievement.unlocked} size={36} />
         <View style={styles.copy}>
-          <Text style={styles.title}>{achievement.title}</Text>
+          <Text style={[styles.title, !achievement.unlocked && styles.mutedText]}>{achievement.title}</Text>
           <Text style={styles.description}>{achievement.description}</Text>
         </View>
       </View>
@@ -56,69 +57,72 @@ export function AchievementCard({ achievement }: AchievementCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: theme.radius.md,
+    borderRadius: chronicleRadius.md,
     borderWidth: 1,
-    padding: theme.spacing.md,
-    gap: theme.spacing.md,
+    padding: chronicleSpacing.md,
+    gap: chronicleSpacing.md,
   },
   unlockedCard: {
-    backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.accent,
+    backgroundColor: chronicleColors.bgSurfaceRaised,
+    borderColor: chronicleColors.accentGold,
   },
   lockedCard: {
-    backgroundColor: theme.colors.surfaceAlt,
-    borderColor: theme.colors.border,
-    opacity: 0.72,
+    backgroundColor: chronicleColors.bgSurface,
+    borderColor: chronicleColors.borderSubtle,
   },
   header: {
     flexDirection: 'row',
-    gap: theme.spacing.md,
-  },
-  icon: {
-    fontSize: 28,
+    gap: chronicleSpacing.md,
   },
   copy: {
     flex: 1,
-    gap: theme.spacing.xs,
+    gap: 4,
   },
   title: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.font.md,
-    fontWeight: '800',
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.display,
+    fontSize: chronicleType.md,
+  },
+  mutedText: {
+    color: chronicleColors.textMuted,
   },
   description: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.sm,
-    lineHeight: 18,
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.body,
+    fontSize: chronicleType.sm,
+    lineHeight: 20,
   },
   progressBlock: {
-    gap: theme.spacing.sm,
+    gap: chronicleSpacing.sm,
   },
   progressText: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.font.sm,
-    fontWeight: '700',
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.xs,
   },
   track: {
-    height: 10,
-    borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.background,
+    height: 12,
+    borderWidth: 1,
+    borderColor: chronicleColors.borderSubtle,
+    backgroundColor: chronicleColors.bgSurfaceRaised,
     overflow: 'hidden',
   },
   fill: {
     height: '100%',
-    backgroundColor: theme.colors.accent,
+    backgroundColor: chronicleColors.accentGold,
   },
   footer: {
-    gap: theme.spacing.xs,
+    gap: 2,
   },
   reward: {
-    color: theme.colors.accentGlow,
-    fontSize: theme.font.sm,
+    color: chronicleColors.accentGold,
+    fontFamily: chronicleFontFamily.body,
+    fontSize: chronicleType.sm,
     lineHeight: 18,
   },
   state: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.sm,
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.xs,
   },
 });

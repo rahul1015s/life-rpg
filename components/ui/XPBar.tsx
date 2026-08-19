@@ -22,7 +22,7 @@ export function XPBar({ currentXP, nextLevelXP }: XPBarProps) {
       </View>
       <View style={styles.track}>
         <View style={[styles.fill, { width: `${progress * 100}%` }]}>
-          <Halftone density="dense" tint={colors.gold} opacity={0.9} />
+          <Halftone density="dense" tint={colors.ink} opacity={0.25} />
           <View style={styles.edge} />
         </View>
         <View style={styles.ticks}>
@@ -50,16 +50,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   track: {
-    height: 14,
-    backgroundColor: colors.inkSoft,
-    borderWidth: borders.accent,
+    height: 22,
+    backgroundColor: colors.ink,
+    borderWidth: borders.panel,
     borderColor: colors.screentoneLight,
     overflow: 'hidden',
     position: 'relative',
   },
   fill: {
     height: '100%',
-    backgroundColor: colors.goldDim,
+    backgroundColor: colors.gold,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -68,8 +68,8 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    width: 3,
-    backgroundColor: colors.gold,
+    width: 4,
+    backgroundColor: colors.parchment,
   },
   ticks: {
     position: 'absolute',

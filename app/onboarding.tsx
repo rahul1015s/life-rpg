@@ -8,19 +8,23 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Image } from 'expo-image';
 import { type Href, useRouter } from 'expo-router';
 
-import { PrimaryButton } from '../components/PrimaryButton';
-import { theme } from '../constants/theme';
+import { ChronicleButton } from '../components/chronicle/ChronicleButton';
+import { ChronicleCard } from '../components/chronicle/ChronicleCard';
+import { ChronicleInput } from '../components/chronicle/ChronicleInput';
+import { chronicleColors, chronicleFontFamily, chronicleRadius, chronicleSpacing, chronicleType } from '../theme/chronicle';
 import { getLocalDateString } from '../lib/haircareEngine';
 import { createInitialProgress } from '../lib/levelSystem';
 import { setProfile, setProgress } from '../lib/storage';
 import type { ExperienceLevel, MainGoal, PlayerProfile, ProfileGender } from '../lib/types';
 import { getDobLimits, toIsoDateString } from '../lib/utils/profile';
+
+const emblemSource = require('../assets/images/splash/splash-emblem.png');
 
 const goalOptions: MainGoal[] = [
   'body',
@@ -48,7 +52,13 @@ function Chip({
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} style={[styles.chip, selected ? styles.chipSelected : null]}>
+    <Pressable
+      onPress={onPress}
+      // Chips render ~36px tall; 4px of slop on each edge brings the touch target to
+      // ~44px without changing their visual size. 4 (not 5) because chipWrap's gap is
+      // 8px — any more and adjacent chips' touch regions would overlap.
+      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+      style={[styles.chip, selected ? styles.chipSelected : null]}>
       <Text style={[styles.chipText, selected ? styles.chipTextSelected : null]}>{label}</Text>
     </Pressable>
   );
@@ -169,25 +179,24 @@ export default function OnboardingScreen() {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
+        <Image source={emblemSource} style={styles.emblem} contentFit="contain" accessible={false} />
         <Text style={styles.kicker}>LIFE RPG</Text>
         <Text style={styles.stepCounter}>STEP {step + 1} / 3</Text>
 
         {step === 0 ? (
-          <View style={styles.panel}>
+          <ChronicleCard style={styles.panel}>
             <Text style={styles.title}>Create your system profile</Text>
             <Text style={styles.body}>
-              Start with your basic profile so the app can personalize the discipline tracker and daily quests correctly.
+              Life RPG turns daily habits into a quest board: clear quests, earn XP, build a streak, and unlock
+              achievements as it grows. Start with your basic profile so the app can personalize the discipline
+              tracker and daily quests correctly.
             </Text>
-            <View style={styles.section}>
-              <Text style={styles.label}>Name</Text>
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="Your name"
-                placeholderTextColor={theme.colors.textMuted}
-                style={styles.input}
-              />
-            </View>
+            <ChronicleInput
+              label="Name"
+              value={name}
+              onChangeText={setName}
+              placeholder="Your name"
+            />
             <View style={styles.section}>
               <Text style={styles.label}>Gender</Text>
               <View style={styles.chipWrap}>
@@ -201,11 +210,11 @@ export default function OnboardingScreen() {
                 ))}
               </View>
             </View>
-          </View>
+          </ChronicleCard>
         ) : null}
 
         {step === 1 ? (
-          <View style={styles.panel}>
+          <ChronicleCard style={styles.panel}>
             <Text style={styles.title}>When were you born?</Text>
             <Text style={styles.body}>
               We store your date of birth so age stays accurate over time instead of asking for a number again later.
@@ -213,12 +222,15 @@ export default function OnboardingScreen() {
             <View style={styles.section}>
               <Text style={styles.label}>Date of Birth</Text>
               {Platform.OS === 'android' ? (
-                <Pressable style={styles.input} onPress={() => setShowDobPicker(true)}>
+                <Pressable style={[styles.input, styles.dobField]} onPress={() => setShowDobPicker(true)}>
                   <Text style={styles.inputText}>{dobIsoString}</Text>
                 </Pressable>
               ) : null}
               {showDobPicker ? (
-                <View style={styles.datePickerWrap}>
+                // Wrapper is styled only on iOS, where the picker renders inline.
+                // On Android it's a native dialog, so an unstyled (invisible) view avoids
+                // leaving an empty bordered strip behind it.
+                <View style={Platform.OS === 'ios' ? styles.datePickerWrap : null}>
                   <DateTimePicker
                     value={dob}
                     mode="date"
@@ -231,11 +243,11 @@ export default function OnboardingScreen() {
               ) : null}
               <Text style={styles.bodySmall}>Allowed range: ages 13 to 100.</Text>
             </View>
-          </View>
+          </ChronicleCard>
         ) : null}
 
         {step === 2 ? (
-          <View style={styles.panel}>
+          <ChronicleCard style={styles.panel}>
             <Text style={styles.title}>Set your growth baseline</Text>
             <Text style={styles.body}>
               Choose one or more targets, then set the rhythm your daily progression will follow.
@@ -270,27 +282,19 @@ export default function OnboardingScreen() {
               </View>
             </View>
 
-            <View style={styles.section}>
-              <Text style={styles.label}>Wake Time</Text>
-              <TextInput
-                value={wakeTime}
-                onChangeText={setWakeTime}
-                placeholder="HH:mm"
-                placeholderTextColor={theme.colors.textMuted}
-                style={styles.input}
-              />
-            </View>
+            <ChronicleInput
+              label="Wake Time"
+              value={wakeTime}
+              onChangeText={setWakeTime}
+              placeholder="HH:mm"
+            />
 
-            <View style={styles.section}>
-              <Text style={styles.label}>Sleep Target</Text>
-              <TextInput
-                value={sleepTarget}
-                onChangeText={setSleepTarget}
-                placeholder="HH:mm"
-                placeholderTextColor={theme.colors.textMuted}
-                style={styles.input}
-              />
-            </View>
+            <ChronicleInput
+              label="Sleep Target"
+              value={sleepTarget}
+              onChangeText={setSleepTarget}
+              placeholder="HH:mm"
+            />
 
             <View style={styles.toggleCard}>
               <View style={styles.toggleCopy}>
@@ -302,33 +306,36 @@ export default function OnboardingScreen() {
               <Switch
                 value={usesMinoxidil}
                 onValueChange={setUsesMinoxidil}
-                trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-                thumbColor={theme.colors.textPrimary}
+                trackColor={{ false: chronicleColors.bgSurfaceRaised, true: chronicleColors.accentGold }}
+                thumbColor={usesMinoxidil ? chronicleColors.bgBase : chronicleColors.textMuted}
+                ios_backgroundColor={chronicleColors.bgSurfaceRaised}
               />
             </View>
 
             {usesMinoxidil ? (
-              <View style={styles.section}>
-                <Text style={styles.label}>Treatment Start Date</Text>
-                <TextInput
-                  value={minoxidilStartDate}
-                  onChangeText={setMinoxidilStartDate}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={theme.colors.textMuted}
-                  style={styles.input}
-                />
-              </View>
+              <ChronicleInput
+                label="Treatment Start Date"
+                value={minoxidilStartDate}
+                onChangeText={setMinoxidilStartDate}
+                placeholder="YYYY-MM-DD"
+              />
             ) : null}
-          </View>
+          </ChronicleCard>
         ) : null}
 
         <View style={styles.actions}>
-          {step > 0 ? <PrimaryButton label="Back" onPress={goBack} variant="secondary" /> : null}
-          {step < 2 ? (
-            <PrimaryButton label="Next" onPress={goNext} />
-          ) : (
-            <PrimaryButton label="Initialize Profile" onPress={handleSubmit} loading={submitting} />
-          )}
+          {step > 0 ? (
+            <View style={styles.action}>
+              <ChronicleButton label="Back" onPress={goBack} variant="secondary" />
+            </View>
+          ) : null}
+          <View style={styles.action}>
+            {step < 2 ? (
+              <ChronicleButton label="Next" onPress={goNext} />
+            ) : (
+              <ChronicleButton label="Initialize Profile" onPress={handleSubmit} loading={submitting} />
+            )}
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -338,117 +345,134 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: chronicleColors.bgBase,
   },
   content: {
-    padding: theme.spacing.lg,
-    gap: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl * 2,
+    padding: chronicleSpacing.lg,
+    gap: chronicleSpacing.lg,
+    paddingBottom: chronicleSpacing.xl * 2,
+  },
+  emblem: {
+    width: 56,
+    height: 56,
+    marginTop: chronicleSpacing.lg,
   },
   kicker: {
-    color: theme.colors.accentGlow,
-    fontSize: theme.font.sm,
-    fontWeight: '800',
-    letterSpacing: 1.4,
-    marginTop: theme.spacing.lg,
+    color: chronicleColors.accentGold,
+    fontFamily: chronicleFontFamily.display,
+    fontSize: chronicleType.sm,
+    letterSpacing: 2,
   },
   stepCounter: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.sm,
-    fontWeight: '700',
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.xs,
+    letterSpacing: 0.5,
   },
   panel: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.lg,
-    gap: theme.spacing.md,
+    gap: chronicleSpacing.md,
   },
   title: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.font.xl,
-    fontWeight: '900',
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.display,
+    fontSize: chronicleType.lg,
+    letterSpacing: 0.5,
   },
   body: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.md,
-    lineHeight: 22,
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.body,
+    fontSize: chronicleType.md,
+    lineHeight: 24,
   },
   bodySmall: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.sm,
-    lineHeight: 18,
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.body,
+    fontSize: chronicleType.sm,
+    lineHeight: 20,
   },
   section: {
-    gap: theme.spacing.sm,
+    gap: chronicleSpacing.sm,
   },
   label: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.font.md,
-    fontWeight: '700',
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.bodySemiBold,
+    fontSize: chronicleType.sm,
   },
   input: {
-    backgroundColor: theme.colors.surfaceAlt,
-    borderRadius: theme.radius.md,
+    // Mirrors ChronicleInput's field styling so the DOB control is indistinguishable
+    // from the real inputs around it.
+    backgroundColor: chronicleColors.bgSurfaceRaised,
+    borderRadius: chronicleRadius.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    color: theme.colors.textPrimary,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    fontSize: theme.font.md,
+    borderColor: chronicleColors.borderSubtle,
+    color: chronicleColors.textPrimary,
+    paddingHorizontal: chronicleSpacing.md,
+    paddingVertical: chronicleSpacing.sm,
+    fontFamily: chronicleFontFamily.body,
+    fontSize: chronicleType.sm,
+  },
+  dobField: {
+    // Pressable, so it needs a real touch target unlike the text fields.
+    minHeight: 44,
+    justifyContent: 'center',
   },
   inputText: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.font.md,
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.body,
+    fontSize: chronicleType.sm,
   },
   datePickerWrap: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surfaceAlt,
+    borderColor: chronicleColors.borderSubtle,
+    borderRadius: chronicleRadius.md,
+    backgroundColor: chronicleColors.bgSurfaceRaised,
   },
   chipWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: chronicleSpacing.sm,
   },
   chip: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.surfaceAlt,
+    paddingHorizontal: chronicleSpacing.md,
+    paddingVertical: chronicleSpacing.sm,
+    // Pill radius is intentional here: chips read as tags, not structural cards.
+    borderRadius: 999,
+    backgroundColor: chronicleColors.bgSurfaceRaised,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: chronicleColors.textMuted,
   },
   chipSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: chronicleColors.accentGold,
+    borderColor: chronicleColors.accentGold,
   },
   chipText: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.sm,
-    fontWeight: '700',
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.bodySemiBold,
+    fontSize: chronicleType.sm,
     textTransform: 'capitalize',
   },
   chipTextSelected: {
-    color: theme.colors.textPrimary,
+    color: chronicleColors.bgBase,
   },
   toggleCard: {
-    backgroundColor: theme.colors.surfaceAlt,
-    borderRadius: theme.radius.md,
+    backgroundColor: chronicleColors.bgSurfaceRaised,
+    borderRadius: chronicleRadius.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.md,
+    borderColor: chronicleColors.borderSubtle,
+    padding: chronicleSpacing.md,
     flexDirection: 'row',
-    gap: theme.spacing.md,
+    gap: chronicleSpacing.md,
     alignItems: 'center',
   },
   toggleCopy: {
     flex: 1,
-    gap: theme.spacing.xs,
+    gap: chronicleSpacing.xs,
   },
   actions: {
     flexDirection: 'row',
-    gap: theme.spacing.md,
+    gap: chronicleSpacing.md,
+  },
+  action: {
+    flex: 1,
   },
 });

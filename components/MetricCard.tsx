@@ -1,6 +1,7 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
-import { theme } from '../constants/theme';
+import { ChronicleCard } from './chronicle/ChronicleCard';
+import { chronicleColors, chronicleFontFamily, chronicleSpacing, chronicleType } from '../theme/chronicle';
 
 interface MetricCardProps {
   label: string;
@@ -10,11 +11,11 @@ interface MetricCardProps {
 
 export function MetricCard({ label, value, subtitle }: MetricCardProps) {
   return (
-    <View style={styles.card}>
+    <ChronicleCard style={styles.card}>
       <Text style={styles.label}>{label}</Text>
       <Text style={styles.value}>{value}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-    </View>
+    </ChronicleCard>
   );
 }
 
@@ -23,26 +24,24 @@ const styles = StyleSheet.create({
     flexBasis: '48%',
     flexGrow: 1,
     minWidth: 140,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.md,
-    gap: theme.spacing.xs,
+    gap: chronicleSpacing.xs,
   },
   label: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.sm,
-    fontWeight: '700',
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.bodySemiBold,
+    fontSize: chronicleType.sm,
   },
+  // Stat readout -> Space Mono per DESIGN.md's data/system font role.
   value: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.font.lg,
-    fontWeight: '900',
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.monoBold,
+    fontSize: chronicleType.lg,
+    letterSpacing: 0.5,
   },
   subtitle: {
-    color: theme.colors.accentGlow,
-    fontSize: theme.font.sm,
-    fontWeight: '600',
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.xs,
+    letterSpacing: 0.5,
   },
 });

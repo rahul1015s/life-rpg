@@ -1,20 +1,15 @@
 import { useCallback, useMemo, useState } from 'react';
-import {
-  Alert,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { MarkedDates } from 'react-native-calendars/src/types';
 import { type Href, useFocusEffect, useRouter } from 'expo-router';
 
 import { AppCalendar } from '../components/AppCalendar';
-import { PrimaryButton } from '../components/PrimaryButton';
-import { theme } from '../constants/theme';
+import { ChronicleButton } from '../components/chronicle/ChronicleButton';
+import { ChronicleCard } from '../components/chronicle/ChronicleCard';
+import { ChronicleInput } from '../components/chronicle/ChronicleInput';
+import { ChronicleSectionHeader } from '../components/chronicle/ChronicleSectionHeader';
+import { ChronicleSegmentedControl } from '../components/chronicle/ChronicleSegmentedControl';
+import { ChronicleStatPanel } from '../components/chronicle/ChronicleStatPanel';
 import {
   buildNoFapCalendar,
   createInitialMensHealthState,
@@ -26,8 +21,16 @@ import {
 import { getMensHealthLogs, getMensHealthState, getProfile, setMensHealthLogs, setMensHealthState } from '../lib/storage';
 import type { MensHealthLog, MensHealthState } from '../lib/types';
 import { getDisciplineCopy, hasAdultContentAccess } from '../lib/utils/profile';
+import { chronicleColors, chronicleFontFamily, chronicleSpacing, chronicleType } from '../theme/chronicle';
+import { chronicleCalendarTheme } from '../theme/chronicleCalendarTheme';
 
 type TrackerStatus = 'none' | 'clean' | 'relapse';
+
+const statusOptions: { value: TrackerStatus; label: string; activeColor?: string; activeTextColor?: string }[] = [
+  { value: 'clean', label: 'Clean', activeColor: chronicleColors.accentJade },
+  { value: 'relapse', label: 'Relapse', activeColor: chronicleColors.accentEmber },
+  { value: 'none', label: 'None', activeColor: chronicleColors.textMuted, activeTextColor: chronicleColors.bgBase },
+];
 
 export default function NoFapScreen() {
   const router = useRouter();
@@ -76,12 +79,17 @@ export default function NoFapScreen() {
       return;
     }
 
-    const nextLogs = upsertMensHealthLog(logs, todayLog);
-    const nextState = updateNoFapAndNoPornState(state, nextLogs);
-    await Promise.all([setMensHealthLogs(nextLogs), setMensHealthState(nextState)]);
-    setLogs(nextLogs);
-    setState(nextState);
-    Alert.alert('Tracker updated', disciplineCopy.savedMessage);
+    try {
+      const nextLogs = upsertMensHealthLog(logs, todayLog);
+      const nextState = updateNoFapAndNoPornState(state, nextLogs);
+      await Promise.all([setMensHealthLogs(nextLogs), setMensHealthState(nextState)]);
+      setLogs(nextLogs);
+      setState(nextState);
+      Alert.alert('Tracker updated', disciplineCopy.savedMessage);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : disciplineCopy.updateErrorMessage;
+      Alert.alert('Save failed', message);
+    }
   }
 
   function setStatus(type: 'noFapStatus' | 'noPornStatus', value: TrackerStatus) {
@@ -92,19 +100,14 @@ export default function NoFapScreen() {
     return buildNoFapCalendar(logs).reduce<MarkedDates>((acc, item) => {
       const tone =
         item.noFapStatus === 'relapse' || item.noPornStatus === 'relapse'
-          ? theme.colors.sealRed
+          ? chronicleColors.accentEmber
           : item.noFapStatus === 'clean' && item.noPornStatus === 'clean'
-            ? theme.colors.gold
+            ? chronicleColors.accentGold
             : undefined;
 
       if (tone) {
         acc[item.date] = {
-          dots: [
-            {
-              key: tone,
-              color: tone,
-            },
-          ],
+          dots: [{ key: tone, color: tone }],
         };
       }
 
@@ -116,12 +119,21 @@ export default function NoFapScreen() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
-      <Pressable onPress={() => router.back()}>
-        <Text style={styles.backLink}>Back</Text>
-      </Pressable>
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={chronicleColors.accentGold} />}>
+      <View style={styles.topLinks}>
+        <Pressable onPress={() => router.back()} style={({ pressed }) => (pressed ? styles.pressed : null)}>
+          <Text style={styles.backLink}>‹ Back</Text>
+        </Pressable>
+        <Pressable
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          onPress={() => router.push('/nofap-calendar' as Href)}
+          style={({ pressed }) => (pressed ? styles.pressed : null)}>
+          <Text style={styles.backLink}>Month View ›</Text>
+        </Pressable>
+      </View>
 
-      <View style={styles.heroCard}>
+      <View style={styles.hero}>
         <Text style={styles.kicker}>{disciplineCopy.kicker}</Text>
         <Text style={styles.title}>{disciplineCopy.title}</Text>
         <Text style={styles.body}>
@@ -130,154 +142,147 @@ export default function NoFapScreen() {
       </View>
 
       {!adultAccess ? (
-        <View style={styles.card}>
+        <ChronicleCard style={styles.formCard}>
           <Text style={styles.cardTitle}>Discipline Mode</Text>
           <Text style={styles.body}>
             This screen is simplified for under-18 profiles. Use workouts, daily quests, and recovery habits to build consistency.
           </Text>
-          <PrimaryButton label="Open Workout Progress" onPress={() => router.push('/workout-progress' as Href)} />
-        </View>
+          <ChronicleButton label="Open Workout Progress" onPress={() => router.push('/workout-progress' as Href)} />
+        </ChronicleCard>
       ) : (
         <>
           <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>{disciplineCopy.currentPrimaryLabel}</Text>
-              <Text style={styles.statValue}>{state?.currentNoFapStreak ?? 0}</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>{disciplineCopy.bestPrimaryLabel}</Text>
-              <Text style={styles.statValue}>{state?.longestNoFapStreak ?? 0}</Text>
-            </View>
+            <ChronicleStatPanel value={String(state?.currentNoFapStreak ?? 0)} label={disciplineCopy.currentPrimaryLabel.toUpperCase()} />
+            <ChronicleStatPanel value={String(state?.longestNoFapStreak ?? 0)} label={disciplineCopy.bestPrimaryLabel.toUpperCase()} />
           </View>
 
           <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>CURRENT NO PORN</Text>
-              <Text style={styles.statValue}>{state?.currentNoPornStreak ?? 0}</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>BEST NO PORN</Text>
-              <Text style={styles.statValue}>{state?.longestNoPornStreak ?? 0}</Text>
-            </View>
+            <ChronicleStatPanel value={String(state?.currentNoPornStreak ?? 0)} label="CURRENT NO PORN" />
+            <ChronicleStatPanel value={String(state?.longestNoPornStreak ?? 0)} label="BEST NO PORN" />
           </View>
 
-          <View style={styles.card}>
+          <ChronicleCard style={styles.formCard}>
             <Text style={styles.cardTitle}>Today · {formatLocalDate()}</Text>
 
-            <Text style={styles.groupLabel}>{disciplineCopy.primaryHabitLabel}</Text>
-            <View style={styles.row}>
-              {(['clean', 'relapse', 'none'] as TrackerStatus[]).map((value) => (
-                <Pressable
-                  key={`fap-${value}`}
-                  style={[styles.chip, todayLog?.noFapStatus === value ? styles.chipSelected : null]}
-                  onPress={() => setStatus('noFapStatus', value)}>
-                  <Text style={styles.chipText}>{value}</Text>
-                </Pressable>
-              ))}
+            <View style={styles.fieldWrap}>
+              <Text style={styles.groupLabel}>{disciplineCopy.primaryHabitLabel}</Text>
+              <ChronicleSegmentedControl
+                options={statusOptions}
+                value={todayLog?.noFapStatus ?? 'none'}
+                onChange={(value) => setStatus('noFapStatus', value)}
+              />
             </View>
 
-            <Text style={styles.groupLabel}>No Porn</Text>
-            <View style={styles.row}>
-              {(['clean', 'relapse', 'none'] as TrackerStatus[]).map((value) => (
-                <Pressable
-                  key={`porn-${value}`}
-                  style={[styles.chip, todayLog?.noPornStatus === value ? styles.chipSelected : null]}
-                  onPress={() => setStatus('noPornStatus', value)}>
-                  <Text style={styles.chipText}>{value}</Text>
-                </Pressable>
-              ))}
+            <View style={styles.fieldWrap}>
+              <Text style={styles.groupLabel}>No Porn</Text>
+              <ChronicleSegmentedControl
+                options={statusOptions}
+                value={todayLog?.noPornStatus ?? 'none'}
+                onChange={(value) => setStatus('noPornStatus', value)}
+              />
             </View>
 
-            <TextInput
-              style={[styles.input, styles.multiline]}
+            <ChronicleInput
+              label={disciplineCopy.primaryHabitLabel + ' note'}
               multiline
               placeholder={disciplineCopy.notePlaceholder}
-              placeholderTextColor={theme.colors.textMuted}
               value={todayLog?.noFapNote ?? ''}
               onChangeText={(text) => setTodayLog((current) => (current ? { ...current, noFapNote: text } : current))}
             />
-            <TextInput
-              style={[styles.input, styles.multiline]}
+            <ChronicleInput
+              label="No-porn note"
               multiline
               placeholder="No-porn note"
-              placeholderTextColor={theme.colors.textMuted}
               value={todayLog?.noPornNote ?? ''}
               onChangeText={(text) => setTodayLog((current) => (current ? { ...current, noPornNote: text } : current))}
             />
 
-            <PrimaryButton label="Save Tracker" onPress={saveTodayLog} />
-          </View>
+            <ChronicleButton label="Save Tracker" onPress={saveTodayLog} />
+          </ChronicleCard>
         </>
       )}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Calendar</Text>
-        <Text style={styles.body}>Gold marks clean days, red marks relapse days.</Text>
-        <AppCalendar markedDates={markedDates} current={formatLocalDate()} />
+        <ChronicleSectionHeader title="Calendar" />
+        <ChronicleCard>
+          <Text style={styles.meta}>Gold marks clean days, ember marks relapse days.</Text>
+          <AppCalendar markedDates={markedDates} current={formatLocalDate()} calendarTheme={chronicleCalendarTheme} />
+        </ChronicleCard>
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.colors.background },
-  content: { padding: theme.spacing.lg, gap: theme.spacing.lg, paddingBottom: theme.spacing.xl * 2 },
-  backLink: { color: theme.colors.accentGlow, fontSize: theme.font.sm, fontWeight: '700' },
-  heroCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.lg,
-    gap: theme.spacing.sm,
-  },
-  kicker: { color: theme.colors.accentGlow, fontSize: theme.font.sm, fontWeight: '800', letterSpacing: 1 },
-  title: { color: theme.colors.textPrimary, fontSize: theme.font.xl, fontWeight: '900' },
-  body: { color: theme.colors.textMuted, fontSize: theme.font.md, lineHeight: 20 },
-  statsRow: { flexDirection: 'row', gap: theme.spacing.md },
-  statCard: {
+  topLinks: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  screen: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceAlt,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.accent,
-    padding: theme.spacing.md,
-    gap: theme.spacing.xs,
+    backgroundColor: chronicleColors.bgBase,
   },
-  statLabel: { color: theme.colors.textMuted, fontSize: theme.font.sm },
-  statValue: { color: theme.colors.textPrimary, fontSize: theme.font.xl, fontWeight: '900' },
-  card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.md,
-    gap: theme.spacing.sm,
+  content: {
+    padding: chronicleSpacing.lg,
+    gap: chronicleSpacing.lg,
+    paddingBottom: chronicleSpacing.xxl,
   },
-  cardTitle: { color: theme.colors.textPrimary, fontSize: theme.font.md, fontWeight: '800' },
-  groupLabel: { color: theme.colors.accentGlow, fontSize: theme.font.sm, fontWeight: '700' },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
-  chip: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+  backLink: {
+    color: chronicleColors.accentGold,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.sm,
   },
-  chipSelected: { backgroundColor: theme.colors.primary, borderColor: theme.colors.accent },
-  chipText: { color: theme.colors.textPrimary, fontSize: theme.font.sm, textTransform: 'capitalize' },
-  input: {
-    backgroundColor: theme.colors.surfaceAlt,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    color: theme.colors.textPrimary,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    fontSize: theme.font.md,
+  pressed: {
+    opacity: 0.7,
   },
-  multiline: { minHeight: 90, textAlignVertical: 'top' },
-  section: { gap: theme.spacing.md },
-  sectionTitle: { color: theme.colors.textPrimary, fontSize: theme.font.lg, fontWeight: '800' },
+  hero: {
+    backgroundColor: chronicleColors.bgSurface,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: chronicleColors.borderSubtle,
+    padding: chronicleSpacing.lg,
+    gap: chronicleSpacing.sm,
+  },
+  kicker: {
+    color: chronicleColors.accentGold,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.xs,
+    letterSpacing: 1,
+  },
+  title: {
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.display,
+    fontSize: chronicleType.lg,
+  },
+  body: {
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.body,
+    fontSize: chronicleType.sm,
+    lineHeight: 20,
+  },
+  meta: {
+    color: chronicleColors.textMuted,
+    fontFamily: chronicleFontFamily.mono,
+    fontSize: chronicleType.sm,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: chronicleSpacing.md,
+  },
+  formCard: {
+    gap: chronicleSpacing.md,
+  },
+  cardTitle: {
+    color: chronicleColors.textPrimary,
+    fontFamily: chronicleFontFamily.display,
+    fontSize: chronicleType.md,
+  },
+  groupLabel: {
+    color: chronicleColors.accentGold,
+    fontFamily: chronicleFontFamily.bodySemiBold,
+    fontSize: chronicleType.sm,
+  },
+  fieldWrap: {
+    gap: chronicleSpacing.sm,
+  },
+  section: {
+    gap: chronicleSpacing.sm,
+  },
 });
